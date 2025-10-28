@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { AddAgentModal } from "../components/shared/AddAgentModal";
+import { EditAgentModal } from "../components/shared/EditAgentModal";
 import { 
   Plus, 
   Search, 
@@ -46,7 +47,9 @@ export function Agents({ onNavigate }: AgentsProps) {
   const [agents, setAgents] = useState<Agent[]>(mockAgents);
   const [searchQuery, setSearchQuery] = useState("");
   const [addAgentOpen, setAddAgentOpen] = useState(false);
+  const [editAgentOpen, setEditAgentOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Agent | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   const filteredAgents = agents.filter(agent =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,6 +85,20 @@ export function Agents({ onNavigate }: AgentsProps) {
   const handleCloseModal = () => {
     setAddAgentOpen(false);
     setSelectedTemplate(null);
+  };
+
+  const handleEditAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setEditAgentOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditAgentOpen(false);
+    setSelectedAgent(null);
+  };
+
+  const handleUpdateAgent = (updatedAgent: Agent) => {
+    setAgents(agents.map(a => a.id === updatedAgent.id ? updatedAgent : a));
   };
 
   const handleRunAgent = (agentId: string) => {
@@ -295,7 +312,7 @@ export function Agents({ onNavigate }: AgentsProps) {
                             <Pause className="h-4 w-4 mr-2" />
                             {agent.status === 'paused' ? 'Resume' : 'Pause'}
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditAgent(agent)}>
                             <Settings className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
@@ -322,6 +339,13 @@ export function Agents({ onNavigate }: AgentsProps) {
         onOpenChange={handleCloseModal}
         onSave={handleAddAgent}
         templateAgent={selectedTemplate}
+      />
+
+      <EditAgentModal
+        open={editAgentOpen}
+        onOpenChange={handleCloseEditModal}
+        onSave={handleUpdateAgent}
+        agent={selectedAgent}
       />
     </div>
   );
