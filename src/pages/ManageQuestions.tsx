@@ -32,6 +32,7 @@ import {
 import { StateBadge } from "../components/shared/StateBadge";
 import { Countdown } from "../components/shared/Countdown";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
+import { EditQuestionDetailsModal } from "../components/shared/EditQuestionDetailsModal";
 import { Search, Plus, MoreHorizontal, XCircle, Pause, Edit } from "lucide-react";
 import { mockQuestions } from "../lib/mock-data";
 import { Question } from "../lib/types";
@@ -56,6 +57,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
   const [pauseConfirmOpen, setPauseConfirmOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch =
@@ -90,7 +92,12 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
 
   const handleEdit = (question: Question) => {
     setSelectedQuestion(question);
-    setDetailsModalOpen(true);
+    setEditModalOpen(true);
+  };
+
+  const handleItemClick = (question: Question) => {
+    setSelectedQuestion(question);
+    setEditModalOpen(true);
   };
 
   const confirmCloseNow = () => {
@@ -119,10 +126,10 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
     setSelectedQuestion(null);
   };
 
-  const handleSaveQuestion = (updatedQuestion: any) => {
+  const handleSaveQuestion = (updatedQuestion: Question) => {
     setQuestions(
       questions.map((q) =>
-        q.id === updatedQuestion.id ? { ...q, ...updatedQuestion } : q
+        q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
     toast.success("Question details updated");
@@ -200,7 +207,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                   <TableRow
                     key={question.id}
                     className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => onNavigate(`questions/${question.id}`)}
+                    onClick={() => handleItemClick(question)}
                   >
                     <TableCell>
                       <p className="max-w-md">{question.title}</p>
@@ -367,32 +374,13 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Details Modal */}
-      {selectedQuestion && (
-        <QuestionDetailsModal
-          open={detailsModalOpen}
-          onOpenChange={setDetailsModalOpen}
-          question={{
-            id: selectedQuestion.id,
-            title: selectedQuestion.title,
-            description: selectedQuestion.description,
-            liveDate: selectedQuestion.createdAt,
-            proposedAnswerEndAt: selectedQuestion.answerEndAt,
-            proposedSettlementAt: selectedQuestion.settlementAt,
-            resolutionCriteria: selectedQuestion.resolutionCriteria,
-            sources: selectedQuestion.sources,
-            aiScore: 0.95,
-            riskFlags: [],
-            createdAt: selectedQuestion.createdAt,
-            categories: selectedQuestion.categories,
-            type: selectedQuestion.type as any,
-          }}
-          onApprove={() => {}}
-          onReject={() => {}}
-          onSave={handleSaveQuestion}
-          isFromSuggestions={false}
-        />
-      )}
+      {/* Edit Question Details Modal */}
+      <EditQuestionDetailsModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        question={selectedQuestion}
+        onSave={handleSaveQuestion}
+      />
     </div>
   );
 }
