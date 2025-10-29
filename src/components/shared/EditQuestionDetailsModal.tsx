@@ -35,6 +35,7 @@ interface EditQuestionDetailsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updatedQuestion: Question) => void;
+  onQueueLive?: (updatedQuestion: Question) => void;
 }
 
 export function EditQuestionDetailsModal({
@@ -42,6 +43,7 @@ export function EditQuestionDetailsModal({
   open,
   onOpenChange,
   onSave,
+  onQueueLive,
 }: EditQuestionDetailsModalProps) {
   const [editedQuestion, setEditedQuestion] = useState<Question | null>(null);
   const [answerEndPopoverOpen, setAnswerEndPopoverOpen] = useState(false);
@@ -81,14 +83,28 @@ export function EditQuestionDetailsModal({
 
   if (!question || !editedQuestion) return null;
 
-  const handleSave = () => {
+  const handleSaveDraft = () => {
     if (editedQuestion) {
       const updatedQuestion: Question = {
         ...editedQuestion,
+        state: 'draft',
         updatedAt: new Date(),
       };
       onSave(updatedQuestion);
-      toast.success("Question updated successfully");
+      toast.success("Question saved as draft");
+    }
+    onOpenChange(false);
+  };
+
+  const handleQueueLive = () => {
+    if (editedQuestion && onQueueLive) {
+      const updatedQuestion: Question = {
+        ...editedQuestion,
+        state: 'awaiting_review',
+        updatedAt: new Date(),
+      };
+      onQueueLive(updatedQuestion);
+      toast.success("Question queued for review");
     }
     onOpenChange(false);
   };
@@ -464,7 +480,14 @@ export function EditQuestionDetailsModal({
           <Button variant="outline" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button variant="outline" onClick={handleSaveDraft}>
+            Save Draft
+          </Button>
+          {onQueueLive && (
+            <Button onClick={handleQueueLive} className="gradient-primary text-white border-0">
+              Queue Live
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
