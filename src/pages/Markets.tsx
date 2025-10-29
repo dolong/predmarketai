@@ -22,7 +22,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp } from "lucide-react";
+import { CardHeader, CardTitle } from "../components/ui/card";
 import { mockProposedQuestions, mockSources } from "../lib/mock-data";
 import { ProposedQuestion, SourceType } from "../lib/types";
 import { formatDate, formatDateTime } from "../lib/utils";
@@ -43,7 +44,7 @@ export function Markets({ onNavigate }: MarketsProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ProposedQuestion | null>(null);
-  const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "deleted">("suggestions");
+  const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "deleted">("queued");
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -176,6 +177,21 @@ export function Markets({ onNavigate }: MarketsProps) {
     toast.success("Question details updated");
   };
 
+  // Get top suggestions by AI score for horizontal feed
+  const topSuggestions = [...proposals]
+    .sort((a, b) => b.aiScore - a.aiScore)
+    .slice(0, 6);
+
+  // Category color mapping
+  const categoryColors: Record<string, string> = {
+    'Technology': 'bg-blue-100 text-blue-700 border-blue-200',
+    'AI': 'bg-purple-100 text-purple-700 border-purple-200',
+    'Cryptocurrency': 'bg-orange-100 text-orange-700 border-orange-200',
+    'Finance': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    'Markets': 'bg-teal-100 text-teal-700 border-teal-200',
+    'Apple': 'bg-slate-100 text-slate-700 border-slate-200',
+  };
+
   return (
     <div>
       <PageHeader
@@ -197,6 +213,97 @@ export function Markets({ onNavigate }: MarketsProps) {
           </>
         }
       />
+
+      {/* Top Suggestions Horizontal Feed */}
+      {topSuggestions.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-purple-500" />
+                <CardTitle className="text-lg">Top AI Suggestions</CardTitle>
+              </div>
+              <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                Highest Scored
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              {topSuggestions.map((suggestion, index) => (
+                <Card
+                  key={suggestion.id}
+                  className="min-w-[340px] group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
+                  onClick={() => handleEditDetails(suggestion)}
+                >
+                  {/* Gradient background */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${
+                    index === 0 ? 'from-violet-500/10 to-purple-500/10' :
+                    index === 1 ? 'from-blue-500/10 to-cyan-500/10' :
+                    index === 2 ? 'from-pink-500/10 to-rose-500/10' :
+                    index === 3 ? 'from-emerald-500/10 to-teal-500/10' :
+                    index === 4 ? 'from-orange-500/10 to-amber-500/10' :
+                    'from-indigo-500/10 to-blue-500/10'
+                  } opacity-0 group-hover:opacity-100 transition-opacity`} />
+
+                  <CardHeader className="relative pb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge className="bg-primary/10 text-primary border-primary/20">
+                        AI Score: {(suggestion.aiScore * 100).toFixed(0)}%
+                      </Badge>
+                      {index === 0 && (
+                        <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                          🏆 Top Pick
+                        </Badge>
+                      )}
+                    </div>
+                    <CardTitle className="text-sm leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                      {suggestion.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative space-y-3 pt-0">
+                    {/* Description - truncated */}
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      {suggestion.description}
+                    </p>
+
+                    {/* Categories */}
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Tag className="h-3 w-3 text-muted-foreground" />
+                      {suggestion.categories.slice(0, 2).map((category) => (
+                        <Badge
+                          key={category}
+                          variant="outline"
+                          className={`text-xs ${categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                        >
+                          {category}
+                        </Badge>
+                      ))}
+                      {suggestion.categories.length > 2 && (
+                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
+                          +{suggestion.categories.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* Meta info */}
+                    <div className="flex items-center justify-between pt-1 border-t text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Ends {suggestion.proposedAnswerEndAt.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" />
+                        <span>{suggestion.sources.length} sources</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-12 gap-6">
         {/* Left Filter Bar */}
@@ -313,7 +420,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                 <div className="border-b px-6 pt-4">
                   <TabsList>
                     <TabsTrigger value="suggestions">
-                      AI Suggestions ({proposals.length})
+                      All AI Suggestions ({proposals.length})
                     </TabsTrigger>
                     <TabsTrigger value="queued">
                       Queued ({queuedProposals.length})
