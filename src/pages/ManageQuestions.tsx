@@ -60,6 +60,9 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const filteredQuestions = questions.filter((q) => {
+    // Exclude awaiting_resolution questions as they appear in Resolve Markets
+    if (q.state === 'awaiting_resolution') return false;
+
     const matchesSearch =
       searchQuery === "" ||
       q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,7 +173,6 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                 <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="awaiting_review">Awaiting Review</SelectItem>
                 <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="awaiting_resolution">Awaiting Resolution</SelectItem>
                 <SelectItem value="resolved">Resolved</SelectItem>
               </SelectContent>
             </Select>
