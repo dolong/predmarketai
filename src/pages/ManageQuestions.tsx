@@ -135,23 +135,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
         q.id === updatedQuestion.id ? updatedQuestion : q
       )
     );
-  };
-
-  const handleQueueLive = (updatedQuestion: Question) => {
-    // Update the question state to awaiting_review (queued for review)
-    const queuedQuestion = {
-      ...updatedQuestion,
-      state: 'awaiting_review' as const
-    };
-
-    setQuestions(
-      questions.map((q) =>
-        q.id === updatedQuestion.id ? queuedQuestion : q
-      )
-    );
-
-    // The question will now appear in the Markets page queue since it has awaiting_review state
-    toast.success("Question queued for review in Markets");
+    toast.success("Question details updated");
   };
 
   return (
@@ -398,7 +382,6 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
         onOpenChange={setEditModalOpen}
         question={selectedQuestion}
         onSave={handleSaveQuestion}
-        onQueueLive={handleQueueLive}
       />
     </div>
   );

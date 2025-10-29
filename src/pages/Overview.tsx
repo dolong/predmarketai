@@ -33,7 +33,8 @@ import {
 } from "../components/ui/popover";
 import { cn } from "../lib/utils";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
-import { ProposedQuestion } from "../lib/types";
+import { EditQuestionDetailsModal } from "../components/shared/EditQuestionDetailsModal";
+import { ProposedQuestion, Question } from "../lib/types";
 
 interface OverviewProps {
   onNavigate: (page: string) => void;
@@ -49,6 +50,8 @@ export function Overview({ onNavigate }: OverviewProps) {
   const [settlementPopoverOpen, setSettlementPopoverOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ProposedQuestion | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedEditQuestion, setSelectedEditQuestion] = useState<Question | null>(null);
 
   const handleOpenModal = () => {
     setQuestionInput(searchInput);
@@ -62,14 +65,38 @@ export function Overview({ onNavigate }: OverviewProps) {
   };
 
   const handleViewDetails = (suggestion: ProposedQuestion) => {
-    setSelectedQuestion(suggestion);
-    setDetailsModalOpen(true);
+    // Convert ProposedQuestion to Question for editing
+    const questionForEdit: Question = {
+      id: suggestion.id,
+      title: suggestion.title,
+      description: suggestion.description,
+      state: 'published', // Overview shows live/published questions
+      answerEndAt: suggestion.proposedAnswerEndAt,
+      settlementAt: suggestion.proposedSettlementAt,
+      resolutionCriteria: suggestion.resolutionCriteria,
+      categories: suggestion.categories,
+      sources: suggestion.sources,
+      answerCount: 0, // Default values
+      createdAt: suggestion.createdAt,
+      updatedAt: new Date(),
+      type: suggestion.type === 'binary' ? 'Binary' : 'Multiple Choice',
+    };
+
+    setSelectedEditQuestion(questionForEdit);
+    setEditModalOpen(true);
   };
 
-  const handleSaveQuestion = (updatedQuestion: ProposedQuestion) => {
+  const handleSaveQuestion = (updatedQuestion: Question) => {
     // In a real app, this would update the backend
     // For now, we'll just show a success message
-    // The actual data is pulled from mockProposedQuestions which is static
+    console.log('Draft saved:', updatedQuestion);
+  };
+
+  const handleQueueLive = (updatedQuestion: Question) => {
+    // In a real app, this would update the backend and move to queue
+    // For now, we'll navigate to Markets page
+    console.log('Queued for review:', updatedQuestion);
+    onNavigate('markets');
   };
 
   // Get trending AI suggestions (highest scores)
@@ -355,8 +382,19 @@ export function Overview({ onNavigate }: OverviewProps) {
         question={selectedQuestion}
         open={detailsModalOpen}
         onOpenChange={setDetailsModalOpen}
-        onSave={handleSaveQuestion}
+        onSave={(updatedQuestion: ProposedQuestion) => {
+          // Legacy handler if needed
+        }}
         showActions={false}
+      />
+
+      {/* Edit Question Details Modal */}
+      <EditQuestionDetailsModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        question={selectedEditQuestion}
+        onSave={handleSaveQuestion}
+        onQueueLive={handleQueueLive}
       />
     </div>
   );
