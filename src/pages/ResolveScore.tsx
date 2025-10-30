@@ -24,8 +24,8 @@ import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Progress } from "../components/ui/progress";
 import { Target, AlertCircle, ExternalLink, CheckCircle } from "lucide-react";
-import { mockQuestions } from "../lib/mock-data";
-import { Question, Outcome } from "../lib/types";
+import { mockQuestions, mockAgents } from "../lib/mock-data";
+import { Question, Outcome, Agent } from "../lib/types";
 import { formatDate } from "../lib/utils";
 import { toast } from "sonner@2.0.3";
 
@@ -72,7 +72,7 @@ export function ResolveScore({ onNavigate }: ResolveScoreProps) {
     <div>
       <PageHeader
         title="Resolve Markets"
-        description="Use AI to settle answers and resolve prediction markets. AI will perform research with your sources to determine outcomes."
+        description="Use AI to settle answers and resolve prediction markets. AI agents will perform research to determine outcomes."
         actions={
           awaitingResolution.length > 0 && (
             <Button onClick={handleBulkResolve}>
@@ -99,7 +99,7 @@ export function ResolveScore({ onNavigate }: ResolveScoreProps) {
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Settlement Date</TableHead>
-                  <TableHead>Sources</TableHead>
+                  <TableHead>AI Agent</TableHead>
                   <TableHead>AI Proposal</TableHead>
                   <TableHead>Answers</TableHead>
                   <TableHead>Actions</TableHead>
@@ -113,7 +113,9 @@ export function ResolveScore({ onNavigate }: ResolveScoreProps) {
                     </TableCell>
                     <TableCell>{formatDate(question.settlementAt)}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{question.sources.length} sources</Badge>
+                      <Badge variant="outline" className="border-primary/50 text-primary">
+                        {mockAgents.find(a => a.id === question.agentId)?.name || 'Unknown Agent'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -165,46 +167,26 @@ export function ResolveScore({ onNavigate }: ResolveScoreProps) {
                   </Card>
                 </div>
 
-                {/* Evidence */}
+                {/* Agent Information */}
                 <div className="space-y-3">
-                  <Label>Evidence Sources</Label>
-                  <div className="space-y-2">
-                    {selectedQuestion.sources.map((source) => (
-                      <Card key={source.id}>
-                        <CardContent className="p-3 flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm">{source.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">
-                                {source.outlet}
-                              </Badge>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs ${
-                                  source.trustLevel === "high"
-                                    ? "border-green-500 text-green-700"
-                                    : source.trustLevel === "medium"
-                                    ? "border-yellow-500 text-yellow-700"
-                                    : "border-red-500 text-red-700"
-                                }`}
-                              >
-                                {source.trustLevel} trust
-                              </Badge>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="icon" asChild>
-                            <a
-                              href={source.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                  <Label>AI Agent</Label>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {mockAgents.find(a => a.id === selectedQuestion.agentId)?.name || 'Unknown Agent'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {mockAgents.find(a => a.id === selectedQuestion.agentId)?.description || 'AI Agent for generating and resolving questions'}
+                          </p>
+                          <Badge variant="outline" className="text-xs mt-2 border-primary/50 text-primary">
+                            AI Generated & Resolved
+                          </Badge>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
 
                 {/* AI Proposal */}

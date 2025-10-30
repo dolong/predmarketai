@@ -1,39 +1,7 @@
 // Mock data for the dashboard
-import { ProposedQuestion, Question, Answer, KPIStat, ConnectorHealth, Source, AuditEvent, Agent } from './types';
+import { ProposedQuestion, Question, Answer, KPIStat, AuditEvent, Agent } from './types';
 
-export const mockSources: Source[] = [
-  {
-    id: 's1',
-    type: 'twitter',
-    url: 'https://twitter.com/user/status/123',
-    title: 'Thread about AI capabilities',
-    outlet: 'Twitter',
-    trustLevel: 'medium',
-    fetchedAt: new Date('2025-10-08T10:00:00Z'),
-    content: 'Recent developments in AI suggest...',
-    isPinned: true,
-  },
-  {
-    id: 's2',
-    type: 'news',
-    url: 'https://techcrunch.com/article',
-    title: 'Major breakthrough in quantum computing',
-    outlet: 'TechCrunch',
-    trustLevel: 'high',
-    fetchedAt: new Date('2025-10-07T15:30:00Z'),
-    content: 'Scientists announced a major advancement...',
-  },
-  {
-    id: 's3',
-    type: 'meme',
-    url: 'https://reddit.com/r/memes/post',
-    title: 'Viral meme about market trends',
-    outlet: 'Reddit',
-    trustLevel: 'low',
-    fetchedAt: new Date('2025-10-06T20:15:00Z'),
-    content: 'Popular meme showing...',
-  },
-];
+// Sources removed - questions now only come from AI Agents
 
 export const mockProposedQuestions: ProposedQuestion[] = [
   {
@@ -44,7 +12,7 @@ export const mockProposedQuestions: ProposedQuestion[] = [
     proposedAnswerEndAt: new Date('2025-12-15T23:59:59Z'),
     proposedSettlementAt: new Date('2026-01-05T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if OpenAI publicly announces GPT-5 with general availability before Dec 31, 2025. Resolves NO otherwise.',
-    sources: [mockSources[0], mockSources[1]],
+    agentId: 'agent2',
     aiScore: 0.95,
     riskFlags: [],
     createdAt: new Date('2025-10-09T08:00:00Z'),
@@ -59,7 +27,7 @@ export const mockProposedQuestions: ProposedQuestion[] = [
     proposedAnswerEndAt: new Date('2025-10-25T23:59:59Z'),
     proposedSettlementAt: new Date('2025-11-01T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if Bitcoin trades at or above $100,000 on any major exchange during October 2025.',
-    sources: [mockSources[1], mockSources[2]],
+    agentId: 'agent4',
     aiScore: 0.92,
     riskFlags: [],
     createdAt: new Date('2025-10-08T14:30:00Z'),
@@ -74,7 +42,7 @@ export const mockProposedQuestions: ProposedQuestion[] = [
     proposedAnswerEndAt: new Date('2025-12-20T23:59:59Z'),
     proposedSettlementAt: new Date('2026-01-02T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if the S&P 500 closes above 6000 on its last trading day of 2025.',
-    sources: [mockSources[0]],
+    agentId: 'agent3',
     aiScore: 0.88,
     riskFlags: [],
     createdAt: new Date('2025-10-07T11:00:00Z'),
@@ -89,7 +57,7 @@ export const mockProposedQuestions: ProposedQuestion[] = [
     proposedAnswerEndAt: new Date('2026-05-31T23:59:59Z'),
     proposedSettlementAt: new Date('2026-06-15T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if Apple officially launches Vision Pro 2 with general availability before June 30, 2026.',
-    sources: [mockSources[1]],
+    agentId: 'agent1',
     aiScore: 0.84,
     riskFlags: [],
     createdAt: new Date('2025-10-07T09:00:00Z'),
@@ -104,7 +72,7 @@ export const mockProposedQuestions: ProposedQuestion[] = [
     proposedAnswerEndAt: new Date('2026-06-15T23:59:59Z'),
     proposedSettlementAt: new Date('2026-06-30T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if EIP-7691 is successfully implemented on Ethereum mainnet before June 30, 2026.',
-    sources: [mockSources[0], mockSources[2]],
+    agentId: 'agent2',
     aiScore: 0.79,
     riskFlags: [],
     createdAt: new Date('2025-10-06T16:00:00Z'),
@@ -124,7 +92,7 @@ export const mockQuestions: Question[] = [
     resolutionCriteria: 'Resolves YES if Bitcoin trades at or above $120,000 on any major exchange during November 2025. Resolves NO otherwise.',
     categories: ['Cryptocurrency', 'Finance'],
     topic: 'Cryptocurrency Markets',
-    sources: [mockSources[0], mockSources[1]],
+    agentId: 'agent4',
     answerCount: 342,
     createdAt: new Date('2025-10-15T10:00:00Z'),
     updatedAt: new Date('2025-10-20T14:20:00Z'),
@@ -148,7 +116,7 @@ export const mockQuestions: Question[] = [
     resolutionCriteria: 'Resolves YES if Apple officially announces at least one new iPhone model in September 2025.',
     categories: ['Technology', 'Apple'],
     topic: 'Consumer Electronics',
-    sources: [mockSources[1]],
+    agentId: 'agent1',
     answerCount: 127,
     createdAt: new Date('2025-08-01T10:00:00Z'),
     updatedAt: new Date('2025-08-15T14:20:00Z'),
@@ -171,7 +139,7 @@ export const mockQuestions: Question[] = [
     settlementAt: new Date('2025-10-08T23:59:59Z'),
     resolutionCriteria: 'Resolves YES if Ethereum Foundation officially implements a new consensus mechanism in 2025.',
     categories: ['Cryptocurrency', 'Technology'],
-    sources: [mockSources[0], mockSources[1]],
+    agentId: 'agent4',
     answerCount: 89,
     createdAt: new Date('2025-07-15T09:00:00Z'),
     updatedAt: new Date('2025-09-20T16:45:00Z'),
@@ -194,7 +162,7 @@ export const mockQuestions: Question[] = [
     resolutionCriteria: 'Resolves YES if Tesla announces and completes a stock split between Oct 1 and Dec 31, 2025.',
     categories: ['Finance', 'Stocks'],
     reviewStatus: 'pending',
-    sources: [mockSources[2]],
+    agentId: 'agent5',
     answerCount: 0,
     createdAt: new Date('2025-10-05T13:00:00Z'),
     updatedAt: new Date('2025-10-06T10:30:00Z'),
@@ -277,35 +245,7 @@ export const mockKPIs: KPIStat[] = [
   { label: 'Scored This Week', value: 15, trend: 'up', change: 7 },
 ];
 
-export const mockConnectors: ConnectorHealth[] = [
-  {
-    id: 'c1',
-    name: 'Twitter Accounts',
-    type: 'twitter',
-    lastRun: new Date('2025-10-09T08:00:00Z'),
-    status: 'healthy',
-    itemsIngested: 1247,
-    failureCount: 0,
-  },
-  {
-    id: 'c2',
-    name: 'News Aggregator',
-    type: 'news',
-    lastRun: new Date('2025-10-09T07:30:00Z'),
-    status: 'healthy',
-    itemsIngested: 543,
-    failureCount: 2,
-  },
-  {
-    id: 'c3',
-    name: 'Reddit',
-    type: 'meme',
-    lastRun: new Date('2025-10-09T06:45:00Z'),
-    status: 'warning',
-    itemsIngested: 89,
-    failureCount: 15,
-  },
-];
+// Connector health removed - no longer needed without sources
 
 export const mockAuditEvents: AuditEvent[] = [
   {
@@ -358,7 +298,7 @@ export const mockAgents: Agent[] = [
     nextRun: new Date('2025-10-28T12:00:00Z'),
     createdAt: new Date('2025-09-15T10:00:00Z'),
     updatedAt: new Date('2025-10-28T08:30:00Z'),
-    isTemplate: true,
+    isTemplate: false,
   },
   {
     id: 'agent2',
@@ -381,7 +321,7 @@ export const mockAgents: Agent[] = [
     nextRun: new Date('2025-10-29T06:00:00Z'),
     createdAt: new Date('2025-09-20T14:00:00Z'),
     updatedAt: new Date('2025-10-28T06:00:00Z'),
-    isTemplate: true,
+    isTemplate: false,
   },
   {
     id: 'agent3',

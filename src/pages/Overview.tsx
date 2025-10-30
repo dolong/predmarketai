@@ -1,6 +1,6 @@
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { mockProposedQuestions } from "../lib/mock-data";
+import { mockProposedQuestions, mockAgents } from "../lib/mock-data";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import { 
@@ -34,7 +34,7 @@ import {
 import { cn } from "../lib/utils";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
 import { EditQuestionDetailsModal } from "../components/shared/EditQuestionDetailsModal";
-import { ProposedQuestion, Question } from "../lib/types";
+import { ProposedQuestion, Question, Agent } from "../lib/types";
 
 interface OverviewProps {
   onNavigate: (page: string) => void;
@@ -42,6 +42,12 @@ interface OverviewProps {
 
 export function Overview({ onNavigate }: OverviewProps) {
   const [searchInput, setSearchInput] = useState("");
+
+  // Helper function to get agent name from a proposal
+  const getAgentName = (proposal: ProposedQuestion): string => {
+    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    return agent?.name || 'Unknown Agent';
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [questionInput, setQuestionInput] = useState("");
   const [expiryDate, setExpiryDate] = useState<Date>();
@@ -76,7 +82,7 @@ export function Overview({ onNavigate }: OverviewProps) {
       settlementAt: suggestion.proposedSettlementAt,
       resolutionCriteria: suggestion.resolutionCriteria,
       categories: suggestion.categories,
-      sources: suggestion.sources,
+      agentId: suggestion.agentId,
       answerCount: 0, // Default values
       createdAt: suggestion.createdAt,
       updatedAt: new Date(),
@@ -236,7 +242,7 @@ export function Overview({ onNavigate }: OverviewProps) {
                     </div>
                     <div className="flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      <span>{suggestion.sources.length} sources</span>
+                      <span>{getAgentName(suggestion)}</span>
                     </div>
                   </div>
                 </div>

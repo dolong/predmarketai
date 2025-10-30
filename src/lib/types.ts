@@ -14,19 +14,7 @@ export type ReviewStatus = 'pending' | 'approved' | 'revision_requested';
 
 export type Outcome = 'YES' | 'NO' | 'INVALID';
 
-export type SourceType = 'twitter' | 'news' | 'meme';
-
-export interface Source {
-  id: string;
-  type: SourceType;
-  url: string;
-  title: string;
-  outlet?: string;
-  trustLevel?: 'high' | 'medium' | 'low';
-  fetchedAt: Date;
-  content: string;
-  isPinned?: boolean;
-}
+// Sources removed - questions now only come from AI Agents
 
 export type QuestionType = 'binary' | 'multi-option';
 
@@ -38,7 +26,7 @@ export interface ProposedQuestion {
   proposedAnswerEndAt: Date;
   proposedSettlementAt: Date;
   resolutionCriteria: string;
-  sources: Source[];
+  agentId: string;
   aiScore: number;
   riskFlags: string[];
   createdAt: Date;
@@ -57,7 +45,7 @@ export interface Question {
   resolutionCriteria: string;
   categories: string[];
   topic?: string;
-  sources: Source[];
+  agentId: string;
   reviewStatus?: ReviewStatus;
   outcome?: Outcome;
   outcomeEvidence?: string[];
@@ -94,15 +82,7 @@ export interface KPIStat {
   trend?: 'up' | 'down' | 'neutral';
 }
 
-export interface ConnectorHealth {
-  id: string;
-  name: string;
-  type: SourceType;
-  lastRun?: Date;
-  status: 'healthy' | 'warning' | 'error';
-  itemsIngested: number;
-  failureCount: number;
-}
+// ConnectorHealth removed - no longer needed without sources
 
 export interface AuditEvent {
   id: string;

@@ -9,7 +9,8 @@ import {
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Agent, ProposedQuestion, AgentSourceType, Source } from "../../lib/types";
+import { Agent, ProposedQuestion, AgentSourceType } from "../../lib/types";
+import { mockProposedQuestions } from "../../lib/mock-data";
 import { formatDateTime, cn } from "../../lib/utils";
 import {
   Globe,
@@ -37,69 +38,6 @@ interface AgentDetailsModalProps {
   onTogglePause?: (agentId: string) => void;
 }
 
-// Mock generated questions for the agent
-const mockGeneratedQuestions: ProposedQuestion[] = [
-  {
-    id: 'gq1',
-    title: 'Will Bitcoin close above $70,000 today?',
-    description: 'A daily prediction market asking whether Bitcoin will close above today\'s opening price',
-    liveDate: new Date('2025-10-29T07:00:00Z'),
-    proposedAnswerEndAt: new Date('2025-10-29T23:59:59Z'),
-    proposedSettlementAt: new Date('2025-10-30T00:30:00Z'),
-    resolutionCriteria: 'Resolves YES if Bitcoin closes above.',
-    sources: [],
-    aiScore: 0.94,
-    riskFlags: [],
-    createdAt: new Date('2025-10-29T07:00:00Z'),
-    categories: ['Cryptocurrency', 'Bitcoin'],
-    type: 'binary',
-  },
-  {
-    id: 'gq2',
-    title: 'Will Bitcoin close above $68,500 today?',
-    description: 'A daily prediction market asking whether Bitcoin will close above.',
-    liveDate: new Date('2025-10-28T07:00:00Z'),
-    proposedAnswerEndAt: new Date('2025-10-28T23:59:59Z'),
-    proposedSettlementAt: new Date('2025-10-29T00:30:00Z'),
-    resolutionCriteria: 'Resolves YES if Bitcoin closes above.',
-    sources: [],
-    aiScore: 0.91,
-    riskFlags: [],
-    createdAt: new Date('2025-10-28T07:00:00Z'),
-    categories: ['Cryptocurrency', 'Bitcoin'],
-    type: 'binary',
-  },
-  {
-    id: 'gq3',
-    title: 'Will Bitcoin close above $69,200 today?',
-    description: 'A daily prediction market asking whether Bitcoin will close above.',
-    liveDate: new Date('2025-10-27T07:00:00Z'),
-    proposedAnswerEndAt: new Date('2025-10-27T23:59:59Z'),
-    proposedSettlementAt: new Date('2025-10-28T00:30:00Z'),
-    resolutionCriteria: 'Resolves YES if Bitcoin closes above.',
-    sources: [],
-    aiScore: 0.89,
-    riskFlags: [],
-    createdAt: new Date('2025-10-27T07:00:00Z'),
-    categories: ['Cryptocurrency', 'Bitcoin'],
-    type: 'binary',
-  },
-  {
-    id: 'gq4',
-    title: 'Will Bitcoin close above $67,800 today?',
-    description: 'A daily prediction market asking whether Bitcoin will close above.',
-    liveDate: new Date('2025-10-26T07:00:00Z'),
-    proposedAnswerEndAt: new Date('2025-10-26T23:59:59Z'),
-    proposedSettlementAt: new Date('2025-10-27T00:30:00Z'),
-    resolutionCriteria: 'Resolves YES if Bitcoin closes above.',
-    sources: [],
-    aiScore: 0.87,
-    riskFlags: [],
-    createdAt: new Date('2025-10-26T07:00:00Z'),
-    categories: ['Cryptocurrency', 'Bitcoin'],
-    type: 'binary',
-  },
-];
 
 export function AgentDetailsModal({
   agent,
@@ -109,13 +47,14 @@ export function AgentDetailsModal({
   onRunAgent,
   onTogglePause,
 }: AgentDetailsModalProps) {
-  const [generatedQuestions, setGeneratedQuestions] = useState<ProposedQuestion[]>(mockGeneratedQuestions);
+  const [generatedQuestions, setGeneratedQuestions] = useState<ProposedQuestion[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
     if (agent && open) {
-      // Reset questions when opening modal for a new agent
-      setGeneratedQuestions(mockGeneratedQuestions);
+      // Filter questions by this specific agent
+      const agentQuestions = mockProposedQuestions.filter(q => q.agentId === agent.id);
+      setGeneratedQuestions(agentQuestions);
     }
   }, [agent, open]);
 
@@ -157,22 +96,35 @@ export function AgentDetailsModal({
       const apiSource = agent.sources.find(source => source.type === 'api');
       const apiEndpoint = apiSource?.config?.apiEndpoint || 'https://theanomaly.app.n8n.cloud/webhook/getbtcdata?ticker=btc';
 
-      console.log('API Source:', apiSource);
-      console.log('API Endpoint:', apiEndpoint);
+      const requestBody = {
+        Question: agent.questionPrompt
+      };
 
       // Make API call to generate question
       const response = await fetch(apiEndpoint, {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate question');
+        throw new Error(`Failed to generate question: ${response.status}`);
       }
 
-      const data = await response.json();
+      const responseText = await response.text();
+
+      if (!responseText || responseText.length === 0) {
+        throw new Error('API returned empty response');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (jsonError) {
+        throw new Error(`API returned invalid JSON: ${responseText}`);
+      }
 
       // Generate current Bitcoin price for mock data (between $65,000 - $75,000)
       const currentPrice = Math.floor(Math.random() * 10000 + 65000);
@@ -182,23 +134,12 @@ export function AgentDetailsModal({
       const newQuestion: ProposedQuestion = {
         id: `gq${Date.now()}`,
         title: data.question || `Will Bitcoin close above $${targetPrice.toLocaleString()} today?`,
-        description: `A daily prediction market asking whether Bitcoin will close above $${targetPrice.toLocaleString()}. Current Bitcoin price is approximately $${currentPrice.toLocaleString()}.`,
+        description: `dummy desc.`,
         liveDate: new Date(),
         proposedAnswerEndAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
         proposedSettlementAt: new Date(Date.now() + 25 * 60 * 60 * 1000), // 25 hours from now
-        resolutionCriteria: `Resolves YES if Bitcoin closes above $${targetPrice.toLocaleString()} today based on major exchanges (Coinbase, Binance, Kraken). Resolves NO otherwise.`,
-        sources: [
-          {
-            id: `source${Date.now()}`,
-            type: 'api',
-            url: apiEndpoint,
-            title: 'Bitcoin Price API',
-            outlet: 'The Anomaly',
-            trustLevel: 'high',
-            fetchedAt: new Date(),
-            content: `Bitcoin price data fetched at ${new Date().toLocaleTimeString()}`,
-          }
-        ],
+        resolutionCriteria: `dummy resolution desc.`,
+        agentId: agent.id,
         aiScore: Math.random() * 0.1 + 0.85, // Random score between 0.85-0.95
         riskFlags: [],
         createdAt: new Date(),
@@ -226,7 +167,7 @@ export function AgentDetailsModal({
         proposedAnswerEndAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         proposedSettlementAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
         resolutionCriteria: `Resolves YES if Bitcoin closes above $${fallbackPrice.toLocaleString()} today based on major exchanges.`,
-        sources: [],
+        agentId: agent.id,
         aiScore: Math.random() * 0.1 + 0.85,
         riskFlags: ['api-error'],
         createdAt: new Date(),
@@ -444,7 +385,7 @@ export function AgentDetailsModal({
                             </div>
                             <div className="flex items-center gap-1">
                               <Sparkles className="h-3 w-3" />
-                              <span>New</span>
+                              <span>Generated by AI</span>
                             </div>
                           </div>
                         </div>

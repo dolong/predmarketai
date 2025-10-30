@@ -24,8 +24,8 @@ import {
 } from "../components/ui/dialog";
 import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
-import { mockProposedQuestions, mockSources } from "../lib/mock-data";
-import { ProposedQuestion, SourceType } from "../lib/types";
+import { mockProposedQuestions, mockAgents } from "../lib/mock-data";
+import { ProposedQuestion, Agent } from "../lib/types";
 import { formatDate, formatDateTime } from "../lib/utils";
 import { EmptyState } from "../components/shared/EmptyState";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
@@ -58,10 +58,10 @@ export function Markets({ onNavigate }: MarketsProps) {
     multiOption: true,
   });
 
-  // Helper function to get primary source type from a proposal
-  const getPrimarySourceType = (proposal: ProposedQuestion): SourceType => {
-    if (proposal.sources.length === 0) return "news";
-    return proposal.sources[0].type;
+  // Helper function to get agent name from a proposal
+  const getAgentName = (proposal: ProposedQuestion): string => {
+    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    return agent?.name || 'Unknown Agent';
   };
 
   // Filter proposals based on search term, source filters, and type filters
@@ -72,9 +72,8 @@ export function Markets({ onNavigate }: MarketsProps) {
       proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Source filter
-    const primarySource = getPrimarySourceType(proposal);
-    const matchesSource = sourceFilters[primarySource];
+    // Agent filter - for now we'll match all since we removed source filtering
+    const matchesSource = true;
     
     // Type filter
     const proposalType = proposal.type || 'binary';
@@ -294,7 +293,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                       </div>
                       <div className="flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
-                        <span>{suggestion.sources.length} sources</span>
+                        <span>{getAgentName(suggestion)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -449,7 +448,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                         <TableRow>
                           <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
-                          <TableHead>Source</TableHead>
+                          <TableHead>Agent</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -482,18 +481,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                                 <p className="max-w-md">{proposal.title}</p>
                               </TableCell>
                               <TableCell>
-                                <Badge 
+                                <Badge
                                   variant="outline"
-                                  className={
-                                    getPrimarySourceType(proposal) === "twitter" 
-                                      ? "border-blue-500 text-blue-700"
-                                      : getPrimarySourceType(proposal) === "news"
-                                      ? "border-orange-500 text-orange-700"
-                                      : "border-purple-500 text-purple-700"
-                                  }
+                                  className="border-primary/50 text-primary"
                                 >
-                                  {getPrimarySourceType(proposal) === "twitter" ? "Twitter" :
-                                   getPrimarySourceType(proposal) === "news" ? "News" : "Reddit"}
+                                  {getAgentName(proposal)}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
@@ -542,14 +534,10 @@ export function Markets({ onNavigate }: MarketsProps) {
                                       </p>
                                     </div>
                                     <div>
-                                      <h4 className="mb-2">Sources</h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {proposal.sources.map((source) => (
-                                          <Badge key={source.id} variant="outline">
-                                            {source.outlet} - {source.type}
-                                          </Badge>
-                                        ))}
-                                      </div>
+                                      <h4 className="mb-2">AI Agent</h4>
+                                      <Badge variant="outline" className="border-primary/50 text-primary">
+                                        {getAgentName(proposal)}
+                                      </Badge>
                                     </div>
                                     <div className="flex gap-2">
                                       <Button
@@ -583,7 +571,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                         <TableRow>
                           <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
-                          <TableHead>Source</TableHead>
+                          <TableHead>Agent</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -616,18 +604,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                                 <p className="max-w-md">{proposal.title}</p>
                               </TableCell>
                               <TableCell>
-                                <Badge 
+                                <Badge
                                   variant="outline"
-                                  className={
-                                    getPrimarySourceType(proposal) === "twitter" 
-                                      ? "border-blue-500 text-blue-700"
-                                      : getPrimarySourceType(proposal) === "news"
-                                      ? "border-orange-500 text-orange-700"
-                                      : "border-purple-500 text-purple-700"
-                                  }
+                                  className="border-primary/50 text-primary"
                                 >
-                                  {getPrimarySourceType(proposal) === "twitter" ? "Twitter" :
-                                   getPrimarySourceType(proposal) === "news" ? "News" : "Reddit"}
+                                  {getAgentName(proposal)}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
@@ -667,14 +648,10 @@ export function Markets({ onNavigate }: MarketsProps) {
                                       </p>
                                     </div>
                                     <div>
-                                      <h4 className="mb-2">Sources</h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {proposal.sources.map((source) => (
-                                          <Badge key={source.id} variant="outline">
-                                            {source.outlet} - {source.type}
-                                          </Badge>
-                                        ))}
-                                      </div>
+                                      <h4 className="mb-2">AI Agent</h4>
+                                      <Badge variant="outline" className="border-primary/50 text-primary">
+                                        {getAgentName(proposal)}
+                                      </Badge>
                                     </div>
                                     <div className="flex gap-2">
                                       <Button
@@ -708,7 +685,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                         <TableRow>
                           <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
-                          <TableHead>Source</TableHead>
+                          <TableHead>Agent</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -741,18 +718,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                                 <p className="max-w-md">{proposal.title}</p>
                               </TableCell>
                               <TableCell>
-                                <Badge 
+                                <Badge
                                   variant="outline"
-                                  className={
-                                    getPrimarySourceType(proposal) === "twitter" 
-                                      ? "border-blue-500 text-blue-700"
-                                      : getPrimarySourceType(proposal) === "news"
-                                      ? "border-orange-500 text-orange-700"
-                                      : "border-purple-500 text-purple-700"
-                                  }
+                                  className="border-primary/50 text-primary"
                                 >
-                                  {getPrimarySourceType(proposal) === "twitter" ? "Twitter" :
-                                   getPrimarySourceType(proposal) === "news" ? "News" : "Reddit"}
+                                  {getAgentName(proposal)}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
@@ -792,14 +762,10 @@ export function Markets({ onNavigate }: MarketsProps) {
                                       </p>
                                     </div>
                                     <div>
-                                      <h4 className="mb-2">Sources</h4>
-                                      <div className="flex flex-wrap gap-2">
-                                        {proposal.sources.map((source) => (
-                                          <Badge key={source.id} variant="outline">
-                                            {source.outlet} - {source.type}
-                                          </Badge>
-                                        ))}
-                                      </div>
+                                      <h4 className="mb-2">AI Agent</h4>
+                                      <Badge variant="outline" className="border-primary/50 text-primary">
+                                        {getAgentName(proposal)}
+                                      </Badge>
                                     </div>
                                     <div className="flex gap-2">
                                       <Button

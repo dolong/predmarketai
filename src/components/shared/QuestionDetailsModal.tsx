@@ -8,7 +8,8 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 import { Badge } from "../ui/badge";
-import { ProposedQuestion } from "../../lib/types";
+import { ProposedQuestion, Agent } from "../../lib/types";
+import { mockAgents } from "../../lib/mock-data";
 import { formatDate, cn } from "../../lib/utils";
 import { ExternalLink, Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "../ui/button";
@@ -344,46 +345,26 @@ export function QuestionDetailsModal({
             />
           </div>
 
-          {/* Sources */}
+          {/* AI Agent */}
           <div>
-            <Label>Sources</Label>
-            <div className="space-y-2 mt-2">
-              {editedQuestion.sources.map((source) => (
-                <div
-                  key={source.id}
-                  className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className={
-                        source.type === "twitter"
-                          ? "border-blue-500 text-blue-700"
-                          : source.type === "news"
-                          ? "border-orange-500 text-orange-700"
-                          : "border-purple-500 text-purple-700"
-                      }
-                    >
-                      {source.type}
-                    </Badge>
-                    <span>{source.outlet}</span>
+            <Label>AI Agent</Label>
+            <div className="mt-2">
+              {(() => {
+                const agent = mockAgents.find(a => a.id === editedQuestion.agentId);
+                return (
+                  <div className="p-3 rounded-lg border bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="border-primary/50 text-primary">
+                        AI Generated
+                      </Badge>
+                      <span className="font-medium">{agent?.name || 'Unknown Agent'}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {agent?.description || 'AI Agent for generating and resolving questions'}
+                    </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    asChild
-                    className="h-8 w-8"
-                  >
-                    <a
-                      href={source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
 

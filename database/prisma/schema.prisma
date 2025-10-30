@@ -1,0 +1,389 @@
+// Prisma schema for Predictive Markets Dashboard
+// Compatible with PlanetScale MySQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma" // Required for PlanetScale
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?  @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  answers Answer[]
+
+  @@map("users")
+}
+
+model Source {
+  id          String      @id @default(cuid())
+  type        SourceType
+  url         String      @db.Text
+  title       String      @db.VarChar(500)
+  outlet      String?
+  trustLevel  TrustLevel? @map("trust_level")
+  fetchedAt   DateTime    @map("fetched_at")
+  content     String?     @db.Text
+  isPinned    Boolean     @default(false) @map("is_pinned")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  questionSources         QuestionSource[]
+  proposedQuestionSources ProposedQuestionSource[]
+
+  @@map("sources")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  questionCategories         QuestionCategory[]
+  proposedQuestionCategories ProposedQuestionCategory[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  questionTags QuestionTag[]
+
+  @@map("tags")
+}
+
+model RiskFlag {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique @db.VarChar(100)
+  description String?          @db.Text
+  severity    RiskSeverity     @default(medium)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  proposedQuestionRiskFlags ProposedQuestionRiskFlag[]
+
+  @@map("risk_flags")
+}
+
+model Question {
+  id                 String         @id @default(cuid())
+  title              String         @db.VarChar(1000)
+  description        String?        @db.Text
+  state              QuestionState  @default(draft)
+  liveDate           DateTime?      @map("live_date")
+  answerEndAt        DateTime       @map("answer_end_at")
+  settlementAt       DateTime       @map("settlement_at")
+  resolutionCriteria String         @map("resolution_criteria") @db.Text
+  topic              String?
+  reviewStatus       ReviewStatus?  @map("review_status")
+  outcome            Outcome?
+  answerCount        Int            @default(0) @map("answer_count")
+  assignee           String?
+  type               String?        @default("Binary")
+  poolTotal          Decimal        @default(0) @map("pool_total") @db.Decimal(15, 2)
+  poolYes            Decimal        @default(0) @map("pool_yes") @db.Decimal(15, 2)
+  poolNo             Decimal        @default(0) @map("pool_no") @db.Decimal(15, 2)
+  createdBy          String?        @map("created_by")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+
+  questionCategories QuestionCategory[]
+  questionTags       QuestionTag[]
+  questionSources    QuestionSource[]
+  outcomeEvidence    OutcomeEvidence[]
+  answers            Answer[]
+
+  @@map("questions")
+}
+
+model ProposedQuestion {
+  id                     String       @id @default(cuid())
+  title                  String       @db.VarChar(1000)
+  description            String?      @db.Text
+  liveDate               DateTime     @map("live_date")
+  proposedAnswerEndAt    DateTime     @map("proposed_answer_end_at")
+  proposedSettlementAt   DateTime     @map("proposed_settlement_at")
+  resolutionCriteria     String       @map("resolution_criteria") @db.Text
+  aiScore                Decimal      @default(0.00) @map("ai_score") @db.Decimal(3, 2)
+  type                   QuestionType @default(binary)
+  createdAt              DateTime     @default(now()) @map("created_at")
+
+  proposedQuestionCategories ProposedQuestionCategory[]
+  proposedQuestionSources    ProposedQuestionSource[]
+  proposedQuestionRiskFlags  ProposedQuestionRiskFlag[]
+
+  @@map("proposed_questions")
+}
+
+model Agent {
+  id               String          @id @default(cuid())
+  name             String
+  description      String?         @db.Text
+  questionPrompt   String          @map("question_prompt") @db.Text
+  resolutionPrompt String          @map("resolution_prompt") @db.Text
+  frequency        AgentFrequency  @default(daily)
+  status           AgentStatus     @default(active)
+  questionsCreated Int             @default(0) @map("questions_created")
+  lastRun          DateTime?       @map("last_run")
+  nextRun          DateTime?       @map("next_run")
+  isTemplate       Boolean         @default(false) @map("is_template")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  agentSources AgentSource[]
+
+  @@map("agents")
+}
+
+model AgentSource {
+  id                Int             @id @default(autoincrement())
+  agentId           String          @map("agent_id")
+  type              AgentSourceType
+  configUrl         String?         @map("config_url") @db.Text
+  configSubreddit   String?         @map("config_subreddit")
+  configApiEndpoint String?         @map("config_api_endpoint") @db.Text
+  configFeedUrl     String?         @map("config_feed_url") @db.Text
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("agent_sources")
+}
+
+model Answer {
+  id            String   @id @default(cuid())
+  questionId    String   @map("question_id")
+  questionTitle String   @map("question_title") @db.VarChar(1000)
+  userId        String   @map("user_id")
+  userName      String   @map("user_name")
+  choice        Choice
+  confidence    Decimal  @default(0.50) @db.Decimal(3, 2)
+  channel       String   @default("web") @db.VarChar(50)
+  placedAt      DateTime @default(now()) @map("placed_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("answers")
+}
+
+model OutcomeEvidence {
+  id           Int          @id @default(autoincrement())
+  questionId   String       @map("question_id")
+  evidence     String       @db.Text
+  evidenceType EvidenceType @default(text) @map("evidence_type")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("outcome_evidence")
+}
+
+model ConnectorHealth {
+  id            String            @id @default(cuid())
+  name          String
+  type          SourceType
+  lastRun       DateTime?         @map("last_run")
+  status        ConnectorStatus   @default(healthy)
+  itemsIngested Int               @default(0) @map("items_ingested")
+  failureCount  Int               @default(0) @map("failure_count")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+
+  @@map("connector_health")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  timestamp  DateTime @default(now())
+  actor      String
+  action     String
+  entityType String   @map("entity_type") @db.VarChar(100)
+  entityId   String   @map("entity_id")
+  changes    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_events")
+}
+
+model KpiStat {
+  id               Int      @id @default(autoincrement())
+  label            String
+  valueNumeric     Decimal? @map("value_numeric") @db.Decimal(15, 2)
+  valueText        String?  @map("value_text") @db.VarChar(500)
+  changePercentage Decimal? @map("change_percentage") @db.Decimal(5, 2)
+  trend            Trend    @default(neutral)
+  dateRecorded     DateTime @map("date_recorded") @db.Date
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("kpi_stats")
+}
+
+// Junction tables
+model QuestionCategory {
+  questionId String @map("question_id")
+  categoryId Int    @map("category_id")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, categoryId])
+  @@map("question_categories")
+}
+
+model QuestionTag {
+  questionId String @map("question_id")
+  tagId      Int    @map("tag_id")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag      Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, tagId])
+  @@map("question_tags")
+}
+
+model QuestionSource {
+  id         Int      @id @default(autoincrement())
+  questionId String   @map("question_id")
+  sourceId   String   @map("source_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  source   Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("question_sources")
+}
+
+model ProposedQuestionCategory {
+  proposedQuestionId String @map("proposed_question_id")
+  categoryId         Int    @map("category_id")
+
+  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
+  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([proposedQuestionId, categoryId])
+  @@map("proposed_question_categories")
+}
+
+model ProposedQuestionSource {
+  id                 Int      @id @default(autoincrement())
+  proposedQuestionId String   @map("proposed_question_id")
+  sourceId           String   @map("source_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
+  source           Source           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("proposed_question_sources")
+}
+
+model ProposedQuestionRiskFlag {
+  proposedQuestionId String @map("proposed_question_id")
+  riskFlagId         Int    @map("risk_flag_id")
+
+  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
+  riskFlag         RiskFlag         @relation(fields: [riskFlagId], references: [id], onDelete: Cascade)
+
+  @@id([proposedQuestionId, riskFlagId])
+  @@map("proposed_question_risk_flags")
+}
+
+// Enums
+enum SourceType {
+  twitter
+  news
+  meme
+}
+
+enum TrustLevel {
+  high
+  medium
+  low
+}
+
+enum QuestionState {
+  draft
+  awaiting_review
+  published
+  answering_closed
+  awaiting_resolution
+  resolved
+  invalid
+  paused
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  revision_requested
+}
+
+enum Outcome {
+  YES
+  NO
+  INVALID
+}
+
+enum QuestionType {
+  binary
+  multi_option @map("multi-option")
+}
+
+enum AgentSourceType {
+  website
+  api
+  x
+  reddit
+  feed
+}
+
+enum AgentFrequency {
+  daily
+  on_update
+  weekly
+}
+
+enum AgentStatus {
+  active
+  paused
+  error
+}
+
+enum Choice {
+  YES
+  NO
+}
+
+enum EvidenceType {
+  url
+  text
+  document
+}
+
+enum ConnectorStatus {
+  healthy
+  warning
+  error
+}
+
+enum RiskSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum Trend {
+  up
+  down
+  neutral
+}
