@@ -170,7 +170,7 @@ export function AgentDetailsModal({
     try {
       // Get the API endpoint from the agent's source configuration
       const apiSource = agent.sources.find(source => source.type === 'api');
-      const apiEndpoint = apiSource?.config?.apiEndpoint || 'https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc';
+      const apiEndpoint = apiSource?.config?.apiEndpoint || 'https://theanomaly.app.n8n.cloud/webhook/getbtcdata?ticker=btc';
 
       // Make API call to generate question
       const response = await fetch(apiEndpoint, {
