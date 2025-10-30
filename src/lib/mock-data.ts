@@ -408,27 +408,43 @@ export const mockAgents: Agent[] = [
   },
   {
     id: 'agent4',
-    name: 'Bitcoin News Agent',
-    description: 'Monitors Bitcoin news and creates relevant prediction markets',
+    name: 'Bitcoin Price Agent',
+    description: 'Creates daily YES/NO prediction markets about Bitcoin closing prices',
     sources: [
-      {
-        type: 'website',
-        config: {
-          url: 'https://bitcoinmagazine.com',
-        },
-      },
       {
         type: 'api',
         config: {
-          apiEndpoint: 'https://api.newsapi.org/v2/everything?q=bitcoin',
+          apiEndpoint: 'https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc',
         },
       },
     ],
-    questionPrompt: 'Create a question about Bitcoin trends based on recent news articles',
+    questionPrompt: 'Generate a question YES/NO Prediction: One asking whether the asset will close **above** today’s price. Keep the questions simple and direct for a prediction market betting app. Only return the text of the questions, no preamble or explanation.',
     resolutionPrompt: 'Answer the question by researching the web and finding the answer.',
     frequency: 'daily',
     status: 'active',
     questionsCreated: 34,
+    lastRun: new Date('2025-10-28T07:00:00Z'),
+    nextRun: new Date('2025-10-29T07:00:00Z'),
+    createdAt: new Date('2025-09-10T11:00:00Z'),
+    updatedAt: new Date('2025-10-28T07:00:00Z'),
+  },
+  {
+    id: 'agent5',
+    name: 'AIXBT News',
+    description: 'Monitors AIXBT news and creates relevant prediction markets',
+    sources: [
+      {
+        type: 'x',
+        config: {
+          url: 'https://x.com/aixbt_agent',
+        },
+      },
+    ],
+    questionPrompt: 'Create a question about AIXBT latest tweets',
+    resolutionPrompt: 'Answer the question by researching the web and finding the answer.',
+    frequency: 'daily',
+    status: 'active',
+    questionsCreated: 21,
     lastRun: new Date('2025-10-28T07:00:00Z'),
     nextRun: new Date('2025-10-29T07:00:00Z'),
     createdAt: new Date('2025-09-10T11:00:00Z'),

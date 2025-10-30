@@ -20,6 +20,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { AddAgentModal } from "../components/shared/AddAgentModal";
 import { EditAgentModal } from "../components/shared/EditAgentModal";
+import { AgentDetailsModal } from "../components/shared/AgentDetailsModal";
 import { 
   Plus, 
   Search, 
@@ -48,6 +49,7 @@ export function Agents({ onNavigate }: AgentsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [addAgentOpen, setAddAgentOpen] = useState(false);
   const [editAgentOpen, setEditAgentOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Agent | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
@@ -103,6 +105,11 @@ export function Agents({ onNavigate }: AgentsProps) {
 
   const handleRunAgent = (agentId: string) => {
     toast.success("Agent run started");
+  };
+
+  const handleViewDetails = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setDetailsModalOpen(true);
   };
 
   const handlePauseAgent = (agentId: string) => {
@@ -253,7 +260,11 @@ export function Agents({ onNavigate }: AgentsProps) {
                 </TableRow>
               ) : (
                 customAgents.map((agent) => (
-                  <TableRow key={agent.id}>
+                  <TableRow
+                    key={agent.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleViewDetails(agent)}
+                  >
                     <TableCell>
                       <div>
                         <p className="font-medium">{agent.name}</p>
@@ -296,7 +307,7 @@ export function Agents({ onNavigate }: AgentsProps) {
                     <TableCell>
                       {agent.nextRun ? formatDateTime(agent.nextRun) : '-'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
@@ -333,6 +344,15 @@ export function Agents({ onNavigate }: AgentsProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <AgentDetailsModal
+        agent={selectedAgent}
+        open={detailsModalOpen}
+        onOpenChange={setDetailsModalOpen}
+        onEditAgent={handleEditAgent}
+        onRunAgent={handleRunAgent}
+        onTogglePause={handlePauseAgent}
+      />
 
       <AddAgentModal
         open={addAgentOpen}

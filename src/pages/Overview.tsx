@@ -71,6 +71,7 @@ export function Overview({ onNavigate }: OverviewProps) {
       title: suggestion.title,
       description: suggestion.description,
       state: 'published', // Overview shows live/published questions
+      liveDate: suggestion.liveDate || suggestion.createdAt, // Use liveDate or fallback to createdAt
       answerEndAt: suggestion.proposedAnswerEndAt,
       settlementAt: suggestion.proposedSettlementAt,
       resolutionCriteria: suggestion.resolutionCriteria,

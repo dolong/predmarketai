@@ -51,6 +51,7 @@ export interface Question {
   title: string;
   description: string;
   state: QuestionState;
+  liveDate?: Date;
   answerEndAt: Date;
   settlementAt: Date;
   resolutionCriteria: string;

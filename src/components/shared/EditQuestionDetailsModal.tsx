@@ -46,6 +46,7 @@ export function EditQuestionDetailsModal({
   onQueueLive,
 }: EditQuestionDetailsModalProps) {
   const [editedQuestion, setEditedQuestion] = useState<Question | null>(null);
+  const [liveDatePopoverOpen, setLiveDatePopoverOpen] = useState(false);
   const [answerEndPopoverOpen, setAnswerEndPopoverOpen] = useState(false);
   const [settlementPopoverOpen, setSettlementPopoverOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -187,6 +188,61 @@ export function EditQuestionDetailsModal({
                 <SelectItem value="Categorical">Categorical</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Live Date */}
+          <div>
+            <Label>Live Date (EST)</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <Popover open={liveDatePopoverOpen} onOpenChange={setLiveDatePopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left",
+                      !editedQuestion.liveDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {editedQuestion.liveDate
+                      ? formatDate(editedQuestion.liveDate)
+                      : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editedQuestion.liveDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        const currentTime = editedQuestion.liveDate
+                          ? formatTimeEST(editedQuestion.liveDate)
+                          : "09:00";
+                        const newDate = updateDateTime(date, currentTime);
+                        setEditedQuestion({
+                          ...editedQuestion,
+                          liveDate: newDate,
+                        });
+                      }
+                      setLiveDatePopoverOpen(false);
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <Input
+                type="time"
+                value={editedQuestion.liveDate ? formatTimeEST(editedQuestion.liveDate) : "09:00"}
+                onChange={(e) => {
+                  const baseDate = editedQuestion.liveDate || new Date();
+                  const newDate = updateDateTime(baseDate, e.target.value);
+                  setEditedQuestion({
+                    ...editedQuestion,
+                    liveDate: newDate,
+                  });
+                }}
+              />
+            </div>
           </div>
 
           {/* Answer End Date */}
