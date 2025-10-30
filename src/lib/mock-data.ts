@@ -414,7 +414,7 @@ export const mockAgents: Agent[] = [
       {
         type: 'api',
         config: {
-          apiEndpoint: 'https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc',
+          apiEndpoint: 'https://theanomaly.app.n8n.cloud/webhook/getbtcdata?ticker=btc',
         },
       },
     ],
