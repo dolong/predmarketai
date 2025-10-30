@@ -168,15 +168,16 @@ export function AgentDetailsModal({
     setIsRunning(true);
 
     try {
+      // Get the API endpoint from the agent's source configuration
+      const apiSource = agent.sources.find(source => source.type === 'api');
+      const apiEndpoint = apiSource?.config?.apiEndpoint || 'https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc';
+
       // Make API call to generate question
-      const response = await fetch('https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc', {
-        method: 'POST',
+      const response = await fetch(apiEndpoint, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: agent.questionPrompt
-        })
+        }
       });
 
       if (!response.ok) {
@@ -202,7 +203,7 @@ export function AgentDetailsModal({
           {
             id: `source${Date.now()}`,
             type: 'api',
-            url: 'https://theanomaly.app.n8n.cloud/webhook-test/getbtcdata?ticker=btc',
+            url: apiEndpoint,
             title: 'Bitcoin Price API',
             outlet: 'The Anomaly',
             trustLevel: 'high',
