@@ -38,10 +38,12 @@ export function EditAgentModal({
 }: EditAgentModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [sources, setSources] = useState<AgentSource[]>([]);
   const [questionPrompt, setQuestionPrompt] = useState("");
   const [resolutionPrompt, setResolutionPrompt] = useState("");
-  const [frequency, setFrequency] = useState<AgentFrequency>("daily");
+  const [baseModel, setBaseModel] = useState("chatgpt-4o-latest");
+  const [frequency, setFrequency] = useState<AgentFrequency>("on_update");
 
   const [newSourceType, setNewSourceType] = useState<AgentSourceType | "">("");
   const [newSourceConfig, setNewSourceConfig] = useState("");
@@ -51,10 +53,12 @@ export function EditAgentModal({
     if (agent) {
       setName(agent.name || "");
       setDescription(agent.description || "");
+      setCategory(agent.category || "");
       setSources(agent.sources || []);
       setQuestionPrompt(agent.questionPrompt || "");
       setResolutionPrompt(agent.resolutionPrompt || "");
-      setFrequency(agent.frequency || "daily");
+      setBaseModel(agent.baseModel || "chatgpt-4o-latest");
+      setFrequency(agent.frequency || "on_update");
     }
   }, [agent]);
 
@@ -113,9 +117,11 @@ export function EditAgentModal({
       ...agent,
       name,
       description,
+      category,
       sources,
       questionPrompt,
       resolutionPrompt,
+      baseModel,
       frequency,
       updatedAt: new Date(),
     };
@@ -192,6 +198,21 @@ export function EditAgentModal({
               placeholder="What does this agent do?"
               className="mt-2 min-h-[80px]"
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g., Cryptocurrency, Technology, Finance"
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Questions created by this agent will inherit this category
+            </p>
           </div>
 
           {/* Sources */}
@@ -315,6 +336,26 @@ export function EditAgentModal({
               placeholder="e.g., Answer the question by researching the web and finding the answer."
               className="mt-2 min-h-[100px]"
             />
+          </div>
+
+          {/* Base Model */}
+          <div>
+            <Label htmlFor="baseModel">AI Model *</Label>
+            <Select value={baseModel} onValueChange={setBaseModel}>
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="chatgpt-4o-latest">ChatGPT 4o (Latest)</SelectItem>
+                <SelectItem value="chatgpt-4o">ChatGPT 4o</SelectItem>
+                <SelectItem value="chatgpt-4-turbo">ChatGPT 4 Turbo</SelectItem>
+                <SelectItem value="gpt-4">GPT-4</SelectItem>
+                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
+                <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Frequency */}

@@ -1,38 +1,23 @@
 // Core data types for the predictive markets dashboard
 
 export type QuestionState =
-  | 'draft'
-  | 'awaiting_review'
-  | 'published'
-  | 'answering_closed'
-  | 'awaiting_resolution'
-  | 'resolved'
-  | 'invalid'
-  | 'paused';
+  | 'pending'           // AI suggestion awaiting review
+  | 'approved'          // Approved and queued for publishing
+  | 'rejected'          // Rejected suggestion
+  | 'draft'             // Manual draft
+  | 'awaiting_review'   // Awaiting manual review
+  | 'published'         // Live market
+  | 'answering_closed'  // Market closed for answers
+  | 'awaiting_resolution' // Awaiting resolution
+  | 'resolved'          // Market resolved
+  | 'invalid'           // Invalid market
+  | 'paused';           // Paused market
 
 export type ReviewStatus = 'pending' | 'approved' | 'revision_requested';
 
 export type Outcome = 'YES' | 'NO' | 'INVALID';
 
-// Sources removed - questions now only come from AI Agents
-
 export type QuestionType = 'binary' | 'multi-option';
-
-export interface ProposedQuestion {
-  id: string;
-  title: string;
-  description: string;
-  liveDate: Date;
-  proposedAnswerEndAt: Date;
-  proposedSettlementAt: Date;
-  resolutionCriteria: string;
-  agentId: string;
-  aiScore: number;
-  riskFlags: string[];
-  createdAt: Date;
-  categories: string[];
-  type?: QuestionType;
-}
 
 export interface Question {
   id: string;
@@ -46,33 +31,37 @@ export interface Question {
   categories: string[];
   topic?: string;
   agentId: string;
+
+  // AI Suggestion fields (for pending/approved/rejected states)
+  aiScore?: number;
+  riskFlags?: string[];
+
+  // Live market fields (for published states)
   reviewStatus?: ReviewStatus;
   outcome?: Outcome;
   outcomeEvidence?: string[];
-  answerCount: number;
-  createdAt: Date;
-  updatedAt: Date;
-  assignee?: string;
-  type?: string;
-  tags?: string[];
+  answerCount?: number;
   poolSize?: {
     total: number;
     yes: number;
     no: number;
   };
-  createdBy?: string;
+  tags?: string[];
+
+  createdAt: Date;
+  updatedAt: Date;
+  type?: QuestionType;
 }
+
+// Alias for backward compatibility
+export type ProposedQuestion = Question;
 
 export interface Answer {
   id: string;
   questionId: string;
   questionTitle: string;
-  userId: string;
-  userName: string;
   choice: 'YES' | 'NO';
-  confidence: number;
-  placedAt: Date;
-  channel: string;
+  closedAt: Date;
 }
 
 export interface KPIStat {
@@ -121,9 +110,11 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
+  category?: string;
   sources: AgentSource[];
   questionPrompt: string;
   resolutionPrompt: string;
+  baseModel: string;
   frequency: AgentFrequency;
   status: 'active' | 'paused' | 'error';
   questionsCreated: number;
@@ -132,4 +123,34 @@ export interface Agent {
   createdAt: Date;
   updatedAt: Date;
   isTemplate?: boolean;
+}
+
+// AI Resolution Proposal Types
+export type ResolutionProposalStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'under_review';
+
+export interface AIResolutionProposal {
+  id: string;
+  questionId: string;
+  resolution: Outcome;
+  confidenceScore: number; // 0.0000 to 1.0000
+  reasoning: string;
+  evidence?: {
+    sources?: string[];
+    dataPoints?: Array<{
+      metric: string;
+      value: string | number;
+      timestamp?: Date;
+    }>;
+    urls?: string[];
+  };
+  status: ResolutionProposalStatus;
+  createdBy: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }

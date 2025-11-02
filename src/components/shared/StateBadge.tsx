@@ -7,6 +7,9 @@ interface StateBadgeProps {
 
 export function StateBadge({ state }: StateBadgeProps) {
   const variants: Record<QuestionState, { variant: any; label: string }> = {
+    pending: { variant: "outline", label: "Pending Review" },
+    approved: { variant: "default", label: "Approved" },
+    rejected: { variant: "destructive", label: "Rejected" },
     draft: { variant: "secondary", label: "Draft" },
     awaiting_review: { variant: "outline", label: "Awaiting Review" },
     published: { variant: "default", label: "Published" },

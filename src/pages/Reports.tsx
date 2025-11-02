@@ -20,11 +20,7 @@ import { TrendingUp, TrendingDown, Users, FileQuestion, Sparkles, Calendar } fro
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { useState } from "react";
 
-interface ReportsProps {
-  onNavigate: (page: string) => void;
-}
-
-export function Reports({ onNavigate }: ReportsProps) {
+export function Reports() {
   const [timeRange, setTimeRange] = useState("7d");
 
   // Mock data for Active Questions over time

@@ -176,16 +176,15 @@ export function EditQuestionDetailsModal({
           <div>
             <Label htmlFor="type">Question Type</Label>
             <Select
-              value={editedQuestion.type || "Binary"}
+              value={editedQuestion.type || "binary"}
               onValueChange={(value) => setEditedQuestion({ ...editedQuestion, type: value })}
             >
               <SelectTrigger className="mt-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Binary">Binary (Yes/No)</SelectItem>
-                <SelectItem value="Multiple Choice">Multiple Choice</SelectItem>
-                <SelectItem value="Categorical">Categorical</SelectItem>
+                <SelectItem value="binary">Binary (Yes/No)</SelectItem>
+                <SelectItem value="multi-option">Multi-option</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -516,20 +515,6 @@ export function EditQuestionDetailsModal({
               </div>
             </div>
           )}
-
-          {/* Assignee */}
-          <div>
-            <Label htmlFor="assignee">Assignee</Label>
-            <Input
-              id="assignee"
-              value={editedQuestion.assignee || ""}
-              onChange={(e) =>
-                setEditedQuestion({ ...editedQuestion, assignee: e.target.value })
-              }
-              className="mt-2"
-              placeholder="Who is responsible for this question?"
-            />
-          </div>
         </div>
 
         <DialogFooter className="gap-2">

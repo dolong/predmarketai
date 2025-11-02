@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -17,10 +18,6 @@ import {
 import { Plus, Trash2, MessageCircle, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface RedditSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
 interface RedditSubreddit {
   id: string;
   name: string;
@@ -30,7 +27,8 @@ interface RedditSubreddit {
   status: "active" | "error";
 }
 
-export function RedditSettings({ onNavigate }: RedditSettingsProps) {
+export function RedditSettings() {
+  const navigate = useNavigate();
   const [subreddits, setSubreddits] = useState<RedditSubreddit[]>([
     {
       id: "1",
@@ -115,7 +113,7 @@ export function RedditSettings({ onNavigate }: RedditSettingsProps) {
         title="Reddit Settings"
         description="Configure Reddit communities for trending content"
         actions={
-          <Button variant="outline" onClick={() => onNavigate("sources")}>
+          <Button variant="outline" onClick={() => navigate("/settings")}>
             Back to Sources
           </Button>
         }
@@ -159,7 +157,7 @@ export function RedditSettings({ onNavigate }: RedditSettingsProps) {
         <CardHeader>
           <CardTitle>Monitored Subreddits ({subreddits.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {subreddits.length === 0 ? (
             <div className="text-center py-12">
               <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

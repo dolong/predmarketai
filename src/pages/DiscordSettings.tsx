@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -26,10 +27,6 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { Plus, Trash2, MessageSquare, CheckCircle, XCircle, Info } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface DiscordSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
 interface DiscordServer {
   id: string;
   name: string;
@@ -41,7 +38,8 @@ interface DiscordServer {
   status: "active" | "error" | "pending";
 }
 
-export function DiscordSettings({ onNavigate }: DiscordSettingsProps) {
+export function DiscordSettings() {
+  const navigate = useNavigate();
   const [servers, setServers] = useState<DiscordServer[]>([
     {
       id: "1",

@@ -29,11 +29,7 @@ import { Question, Outcome, Agent } from "../lib/types";
 import { formatDate } from "../lib/utils";
 import { toast } from "sonner@2.0.3";
 
-interface ResolveScoreProps {
-  onNavigate: (page: string) => void;
-}
-
-export function ResolveScore({ onNavigate }: ResolveScoreProps) {
+export function ResolveScore() {
   const awaitingResolution = mockQuestions.filter(
     (q) => q.state === "awaiting_resolution"
   );
@@ -84,7 +80,7 @@ export function ResolveScore({ onNavigate }: ResolveScoreProps) {
       />
 
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {awaitingResolution.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

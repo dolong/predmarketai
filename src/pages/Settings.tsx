@@ -2,12 +2,10 @@ import { PageHeader } from "../components/shared/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Twitter, Newspaper, MessageSquare, Send, Hash, ChevronRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-interface SettingsProps {
-  onNavigate: (page: string) => void;
-}
-
-export function Settings({ onNavigate }: SettingsProps) {
+export function Settings() {
+  const navigate = useNavigate();
   const settingsSections = [
     {
       id: 'twitter',
@@ -73,7 +71,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                 <Card
                   key={section.id}
                   className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
-                  onClick={() => onNavigate(section.route)}
+                  onClick={() => navigate(`/${section.route}`)}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -91,7 +89,7 @@ export function Settings({ onNavigate }: SettingsProps) {
                       className="w-full"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onNavigate(section.route);
+                        navigate(`/${section.route}`);
                       }}
                     >
                       Configure

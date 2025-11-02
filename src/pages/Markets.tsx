@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, Fragment, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -22,32 +23,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
-import { mockProposedQuestions, mockAgents } from "../lib/mock-data";
+import { mockQuestions, mockAgents } from "../lib/mock-data";
 import { ProposedQuestion, Agent } from "../lib/types";
 import { formatDate, formatDateTime } from "../lib/utils";
 import { EmptyState } from "../components/shared/EmptyState";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
 import { toast } from "sonner@2.0.3";
 
-interface MarketsProps {
-  onNavigate: (page: string) => void;
-}
-
-export function Markets({ onNavigate }: MarketsProps) {
-  const [proposals, setProposals] = useState<ProposedQuestion[]>(mockProposedQuestions);
-  const [queuedProposals, setQueuedProposals] = useState<ProposedQuestion[]>([]);
-  const [deletedProposals, setDeletedProposals] = useState<ProposedQuestion[]>([]);
+export function Markets() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [questions, setQuestions] = useState<ProposedQuestion[]>(mockQuestions);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ProposedQuestion | null>(null);
-  const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "deleted">("queued");
+  const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "live" | "paused" | "deleted">("queued");
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilters, setCategoryFilters] = useState({
+    Technology: true,
+    AI: true,
+    Cryptocurrency: true,
+    Finance: true,
+    Markets: true,
+    Apple: true,
+  });
   const [sourceFilters, setSourceFilters] = useState({
     twitter: true,
     news: true,
@@ -58,29 +62,72 @@ export function Markets({ onNavigate }: MarketsProps) {
     multiOption: true,
   });
 
+  // Initialize state from URL params on mount
+  useEffect(() => {
+    const agentSearch = searchParams.get('agent');
+    const tab = searchParams.get('tab');
+
+    if (agentSearch) {
+      setSearchTerm(agentSearch);
+    }
+
+    if (tab === 'suggestions') {
+      setActiveTab('suggestions');
+    }
+  }, []);
+
   // Helper function to get agent name from a proposal
   const getAgentName = (proposal: ProposedQuestion): string => {
     const agent = mockAgents.find(a => a.id === proposal.agentId);
     return agent?.name || 'Unknown Agent';
   };
 
-  // Filter proposals based on search term, source filters, and type filters
-  const currentList = activeTab === "suggestions" ? proposals : activeTab === "queued" ? queuedProposals : deletedProposals;
-  const filteredProposals = currentList.filter((proposal) => {
-    // Search filter
-    const matchesSearch = searchTerm === "" || 
-      proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  // Filter questions by active tab (state)
+  const tabStateMap = {
+    suggestions: 'pending' as const,
+    queued: 'approved' as const,
+    live: 'published' as const,
+    paused: 'paused' as const,
+    deleted: 'rejected' as const,
+  };
+
+  const filteredProposals = questions.filter((proposal) => {
+    // Tab filter (by state)
+    if (proposal.state !== tabStateMap[activeTab]) return false;
+
+    // Search filter (only search agent names)
+    const agentName = getAgentName(proposal);
+    const matchesSearch = searchTerm === "" ||
+      agentName.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Category filter - check agent's category
+    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    const agentCategory = agent?.category;
+    const matchesCategory = !agentCategory || categoryFilters[agentCategory as keyof typeof categoryFilters];
+
     // Agent filter - for now we'll match all since we removed source filtering
     const matchesSource = true;
-    
+
     // Type filter
     const proposalType = proposal.type || 'binary';
     const matchesType = proposalType === 'binary' ? typeFilters.binary : typeFilters.multiOption;
-    
-    return matchesSearch && matchesSource && matchesType;
+
+    return matchesSearch && matchesCategory && matchesSource && matchesType;
   });
+
+  // Count by state for tab labels
+  const pendingCount = questions.filter(q => q.state === 'pending').length;
+  const approvedCount = questions.filter(q => q.state === 'approved').length;
+  const liveCount = questions.filter(q => q.state === 'published').length;
+  const pausedCount = questions.filter(q => q.state === 'paused').length;
+  const rejectedCount = questions.filter(q => q.state === 'rejected').length;
+
+  const handleToggleCategoryFilter = (category: keyof typeof categoryFilters) => {
+    setCategoryFilters(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
 
   const handleToggleSourceFilter = (source: keyof typeof sourceFilters) => {
     setSourceFilters(prev => ({
@@ -96,6 +143,10 @@ export function Markets({ onNavigate }: MarketsProps) {
     }));
   };
 
+  const handleClearSearch = () => {
+    setSearchTerm("");
+  };
+
   const handleGenerate = () => {
     setIsGenerating(true);
     // Simulate AI generation
@@ -107,45 +158,73 @@ export function Markets({ onNavigate }: MarketsProps) {
   };
 
   const handleApprove = (id: string) => {
-    const question = proposals.find((p) => p.id === id);
+    const question = questions.find((p) => p.id === id);
     if (question) {
       toast.success("Question approved and moved to queued");
-      setQueuedProposals([...queuedProposals, question]);
-      setProposals(proposals.filter((p) => p.id !== id));
+      setQuestions(questions.map(q =>
+        q.id === id ? { ...q, state: 'approved' as const, updatedAt: new Date() } : q
+      ));
     }
   };
 
   const handleReject = (id: string) => {
-    const question = proposals.find((p) => p.id === id);
+    const question = questions.find((p) => p.id === id);
     if (question) {
       toast.success("Question rejected");
-      setDeletedProposals([...deletedProposals, question]);
-      setProposals(proposals.filter((p) => p.id !== id));
+      setQuestions(questions.map(q =>
+        q.id === id ? { ...q, state: 'rejected' as const, updatedAt: new Date() } : q
+      ));
     }
   };
 
   const handleApproveFromModal = (question: ProposedQuestion) => {
-    if (activeTab === "suggestions") {
-      setQueuedProposals([...queuedProposals, question]);
-      setProposals(proposals.filter((p) => p.id !== question.id));
-    }
-    setDeletedProposals(deletedProposals.filter((p) => p.id !== question.id));
+    setQuestions(questions.map(q =>
+      q.id === question.id ? { ...q, state: 'approved' as const, updatedAt: new Date() } : q
+    ));
   };
 
   const handleRejectFromModal = (question: ProposedQuestion) => {
-    if (activeTab === "suggestions") {
-      setDeletedProposals([...deletedProposals, question]);
-      setProposals(proposals.filter((p) => p.id !== question.id));
-    } else if (activeTab === "queued") {
-      setDeletedProposals([...deletedProposals, question]);
-      setQueuedProposals(queuedProposals.filter((p) => p.id !== question.id));
-    }
+    setQuestions(questions.map(q =>
+      q.id === question.id ? { ...q, state: 'rejected' as const, updatedAt: new Date() } : q
+    ));
   };
 
   const handleBatchApprove = () => {
-    toast.success(`Approved ${proposals.length} questions and moved to queued`);
-    setQueuedProposals([...queuedProposals, ...proposals]);
-    setProposals([]);
+    const pendingQuestions = questions.filter(q => q.state === 'pending');
+    toast.success(`Approved ${pendingQuestions.length} questions and moved to queued`);
+    setQuestions(questions.map(q =>
+      q.state === 'pending' ? { ...q, state: 'approved' as const, updatedAt: new Date() } : q
+    ));
+  };
+
+  const handleCloseNow = (id: string) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      toast.success("Question closed and moved to awaiting resolution");
+      setQuestions(questions.map(q =>
+        q.id === id ? { ...q, state: 'awaiting_resolution' as const, updatedAt: new Date() } : q
+      ));
+    }
+  };
+
+  const handlePause = (id: string) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      toast.success("Question paused");
+      setQuestions(questions.map(q =>
+        q.id === id ? { ...q, state: 'paused' as const, updatedAt: new Date() } : q
+      ));
+    }
+  };
+
+  const handleUnpause = (id: string) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      toast.success("Question resumed");
+      setQuestions(questions.map(q =>
+        q.id === id ? { ...q, state: 'published' as const, updatedAt: new Date() } : q
+      ));
+    }
   };
 
   const handleEditDetails = (proposal: ProposedQuestion) => {
@@ -154,31 +233,16 @@ export function Markets({ onNavigate }: MarketsProps) {
   };
 
   const handleSaveQuestion = (updatedQuestion: ProposedQuestion) => {
-    if (activeTab === "suggestions") {
-      setProposals(
-        proposals.map((p) =>
-          p.id === updatedQuestion.id ? updatedQuestion : p
-        )
-      );
-    } else if (activeTab === "queued") {
-      setQueuedProposals(
-        queuedProposals.map((p) =>
-          p.id === updatedQuestion.id ? updatedQuestion : p
-        )
-      );
-    } else {
-      setDeletedProposals(
-        deletedProposals.map((p) =>
-          p.id === updatedQuestion.id ? updatedQuestion : p
-        )
-      );
-    }
+    setQuestions(questions.map(q =>
+      q.id === updatedQuestion.id ? { ...updatedQuestion, updatedAt: new Date() } : q
+    ));
     toast.success("Question details updated");
   };
 
   // Get top suggestions by AI score for horizontal feed
-  const topSuggestions = [...proposals]
-    .sort((a, b) => b.aiScore - a.aiScore)
+  const topSuggestions = questions
+    .filter(q => q.state === 'pending' && q.aiScore)
+    .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 6);
 
   // Category color mapping
@@ -198,9 +262,9 @@ export function Markets({ onNavigate }: MarketsProps) {
         description="Manage AI-generated suggestions and queued questions"
         actions={
           <>
-            {activeTab === "suggestions" && proposals.length > 0 && (
+            {activeTab === "suggestions" && pendingCount > 0 && (
               <Button variant="outline" onClick={handleBatchApprove}>
-                Approve All ({proposals.length})
+                Approve All ({pendingCount})
               </Button>
             )}
             {activeTab === "suggestions" && (
@@ -289,7 +353,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                     <div className="flex items-center justify-between pt-1 border-t text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        <span>Ends {suggestion.proposedAnswerEndAt.toLocaleDateString()}</span>
+                        <span>Ends {suggestion.answerEndAt.toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Sparkles className="h-3 w-3" />
@@ -306,30 +370,127 @@ export function Markets({ onNavigate }: MarketsProps) {
 
       <div className="grid grid-cols-12 gap-6">
         {/* Left Filter Bar */}
-        <Card className="col-span-3">
+        <Card className="col-span-2">
           <CardContent className="p-6 space-y-6">
             <div>
-              <Label>Search</Label>
-              <Input
-                placeholder="Search questions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="mt-2"
-              />
+              <Label>Search Agents</Label>
+              <div className="relative mt-2">
+                <Input
+                  placeholder="Search agents..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-8"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full w-8 hover:bg-transparent"
+                    onClick={handleClearSearch}
+                  >
+                    <XCircle className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div>
-              <Label className="mb-3 block">Sources</Label>
+              <Label className="mb-3 block">Category</Label>
               <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="technology"
+                    checked={categoryFilters.Technology}
+                    onCheckedChange={() => handleToggleCategoryFilter("Technology")}
+                  />
+                  <label
+                    htmlFor="technology"
+                    className="text-sm cursor-pointer"
+                  >
+                    Technology
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="ai"
+                    checked={categoryFilters.AI}
+                    onCheckedChange={() => handleToggleCategoryFilter("AI")}
+                  />
+                  <label
+                    htmlFor="ai"
+                    className="text-sm cursor-pointer"
+                  >
+                    AI
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="cryptocurrency"
+                    checked={categoryFilters.Cryptocurrency}
+                    onCheckedChange={() => handleToggleCategoryFilter("Cryptocurrency")}
+                  />
+                  <label
+                    htmlFor="cryptocurrency"
+                    className="text-sm cursor-pointer"
+                  >
+                    Cryptocurrency
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="finance"
+                    checked={categoryFilters.Finance}
+                    onCheckedChange={() => handleToggleCategoryFilter("Finance")}
+                  />
+                  <label
+                    htmlFor="finance"
+                    className="text-sm cursor-pointer"
+                  >
+                    Finance
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="markets"
+                    checked={categoryFilters.Markets}
+                    onCheckedChange={() => handleToggleCategoryFilter("Markets")}
+                  />
+                  <label
+                    htmlFor="markets"
+                    className="text-sm cursor-pointer"
+                  >
+                    Markets
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="apple"
+                    checked={categoryFilters.Apple}
+                    onCheckedChange={() => handleToggleCategoryFilter("Apple")}
+                  />
+                  <label
+                    htmlFor="apple"
+                    className="text-sm cursor-pointer"
+                  >
+                    Apple
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label className="mb-3 block text-muted-foreground">Sources</Label>
+              <div className="space-y-3 opacity-50">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="twitter"
                     checked={sourceFilters.twitter}
                     onCheckedChange={() => handleToggleSourceFilter("twitter")}
+                    disabled
                   />
                   <label
                     htmlFor="twitter"
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-not-allowed"
                   >
                     Twitter
                   </label>
@@ -339,10 +500,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                     id="news"
                     checked={sourceFilters.news}
                     onCheckedChange={() => handleToggleSourceFilter("news")}
+                    disabled
                   />
                   <label
                     htmlFor="news"
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-not-allowed"
                   >
                     News
                   </label>
@@ -352,10 +514,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                     id="reddit"
                     checked={sourceFilters.meme}
                     onCheckedChange={() => handleToggleSourceFilter("meme")}
+                    disabled
                   />
                   <label
                     htmlFor="reddit"
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-not-allowed"
                   >
                     Reddit
                   </label>
@@ -364,17 +527,18 @@ export function Markets({ onNavigate }: MarketsProps) {
             </div>
 
             <div>
-              <Label className="mb-3 block">Type</Label>
-              <div className="space-y-3">
+              <Label className="mb-3 block text-muted-foreground">Type</Label>
+              <div className="space-y-3 opacity-50">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="binary"
                     checked={typeFilters.binary}
                     onCheckedChange={() => handleToggleTypeFilter("binary")}
+                    disabled
                   />
                   <label
                     htmlFor="binary"
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-not-allowed"
                   >
                     Binary
                   </label>
@@ -384,10 +548,11 @@ export function Markets({ onNavigate }: MarketsProps) {
                     id="multi-option"
                     checked={typeFilters.multiOption}
                     onCheckedChange={() => handleToggleTypeFilter("multiOption")}
+                    disabled
                   />
                   <label
                     htmlFor="multi-option"
-                    className="text-sm cursor-pointer"
+                    className="text-sm cursor-not-allowed"
                   >
                     Multi-option
                   </label>
@@ -398,13 +563,19 @@ export function Markets({ onNavigate }: MarketsProps) {
             <div className="pt-4 border-t">
               <div className="text-sm text-muted-foreground">
                 <p className="mb-1">
-                  <span className="font-medium">AI Suggestions:</span> {proposals.length}
+                  <span className="font-medium">AI Suggestions:</span> {pendingCount}
                 </p>
                 <p className="mb-1">
-                  <span className="font-medium">Queued:</span> {queuedProposals.length}
+                  <span className="font-medium">Queued:</span> {approvedCount}
+                </p>
+                <p className="mb-1">
+                  <span className="font-medium">Live:</span> {liveCount}
+                </p>
+                <p className="mb-1">
+                  <span className="font-medium">Paused:</span> {pausedCount}
                 </p>
                 <p>
-                  <span className="font-medium">Deleted:</span> {deletedProposals.length}
+                  <span className="font-medium">Deleted:</span> {rejectedCount}
                 </p>
               </div>
             </div>
@@ -415,23 +586,29 @@ export function Markets({ onNavigate }: MarketsProps) {
         <div className="col-span-9">
           <Card>
             <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "suggestions" | "queued" | "deleted")} className="w-full">
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "suggestions" | "queued" | "live" | "paused" | "deleted")} className="w-full">
                 <div className="border-b px-6 pt-4">
                   <TabsList>
                     <TabsTrigger value="suggestions">
-                      All AI Suggestions ({proposals.length})
+                      All AI Suggestions ({pendingCount})
                     </TabsTrigger>
                     <TabsTrigger value="queued">
-                      Queued ({queuedProposals.length})
+                      Queued ({approvedCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="live">
+                      Live ({liveCount})
+                    </TabsTrigger>
+                    <TabsTrigger value="paused">
+                      Paused ({pausedCount})
                     </TabsTrigger>
                     <TabsTrigger value="deleted">
-                      Deleted ({deletedProposals.length})
+                      Deleted ({rejectedCount})
                     </TabsTrigger>
                   </TabsList>
                 </div>
                 
                 {/* AI Suggestions Tab */}
-                <TabsContent value="suggestions" className="m-0">
+                <TabsContent value="suggestions" className="m-0 p-6">
                   {filteredProposals.length === 0 ? (
                     <EmptyState
                       icon={<Sparkles className="h-12 w-12" />}
@@ -446,111 +623,84 @@ export function Markets({ onNavigate }: MarketsProps) {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
                           <TableHead>Agent</TableHead>
+                          <TableHead>Categories</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead className="w-32">Actions</TableHead>
+                          <TableHead className="w-48">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredProposals.map((proposal) => (
-                          <>
-                            <TableRow key={proposal.id}>
-                              <TableCell>
+                          <TableRow key={proposal.id}>
+                            <TableCell>
+                              <p className="max-w-md">{proposal.title}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className="border-primary/50 text-primary"
+                              >
+                                {getAgentName(proposal)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {(() => {
+                                const agent = mockAgents.find(a => a.id === proposal.agentId);
+                                return agent?.category ? (
+                                  <Badge
+                                    variant="outline"
+                                    className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                  >
+                                    {agent.category}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                );
+                              })()}
+                            </TableCell>
+                            <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
+                            <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
+                            <TableCell className="text-sm">
+                              {formatDateTime(proposal.settlementAt)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {proposal.type === 'multi-option' ? 'Multi-option' : proposal.type === 'paused' ? 'Paused' : 'Binary'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
                                 <Button
-                                  variant="ghost"
                                   size="sm"
-                                  onClick={() =>
-                                    setExpandedRow(
-                                      expandedRow === proposal.id ? null : proposal.id
-                                    )
-                                  }
-                                >
-                                  {expandedRow === proposal.id ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TableCell>
-                              <TableCell>
-                                <p className="max-w-md">{proposal.title}</p>
-                              </TableCell>
-                              <TableCell>
-                                <Badge
                                   variant="outline"
-                                  className="border-primary/50 text-primary"
+                                  onClick={() => handleEditDetails(proposal)}
+                                  title="Edit Details"
                                 >
-                                  {getAgentName(proposal)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
-                              <TableCell className="text-sm">{formatDateTime(proposal.proposedAnswerEndAt)}</TableCell>
-                              <TableCell className="text-sm">
-                                {formatDateTime(proposal.proposedSettlementAt)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="capitalize">
-                                  {proposal.type === 'multi-option' ? 'Multi-option' : proposal.type === 'paused' ? 'Paused' : 'Binary'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleApprove(proposal.id)}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleReject(proposal.id)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                            {expandedRow === proposal.id && (
-                              <TableRow>
-                                <TableCell colSpan={8} className="bg-muted/50">
-                                  <div className="p-4 space-y-4">
-                                    <div>
-                                      <h4 className="mb-2">Description</h4>
-                                      <p className="text-muted-foreground">
-                                        {proposal.description}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="mb-2">Resolution Criteria</h4>
-                                      <p className="text-muted-foreground">
-                                        {proposal.resolutionCriteria}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="mb-2">AI Agent</h4>
-                                      <Badge variant="outline" className="border-primary/50 text-primary">
-                                        {getAgentName(proposal)}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        onClick={() => handleEditDetails(proposal)}
-                                      >
-                                        Edit Details
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => handleApprove(proposal.id)}
+                                  title="Approve"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleReject(proposal.id)}
+                                  title="Reject"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         ))}
                       </TableBody>
                     </Table>
@@ -558,7 +708,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                 </TabsContent>
 
                 {/* Queued Tab */}
-                <TabsContent value="queued" className="m-0">
+                <TabsContent value="queued" className="m-0 p-6">
                   {filteredProposals.length === 0 ? (
                     <EmptyState
                       icon={<Clock className="h-12 w-12" />}
@@ -572,6 +722,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                           <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
                           <TableHead>Agent</TableHead>
+                          <TableHead>Categories</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -581,8 +732,8 @@ export function Markets({ onNavigate }: MarketsProps) {
                       </TableHeader>
                       <TableBody>
                         {filteredProposals.map((proposal) => (
-                          <>
-                            <TableRow key={proposal.id}>
+                          <Fragment key={proposal.id}>
+                            <TableRow>
                               <TableCell>
                                 <Button
                                   variant="ghost"
@@ -611,10 +762,25 @@ export function Markets({ onNavigate }: MarketsProps) {
                                   {getAgentName(proposal)}
                                 </Badge>
                               </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
+                                  return agent?.category ? (
+                                    <Badge
+                                      variant="outline"
+                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                    >
+                                      {agent.category}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  );
+                                })()}
+                              </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
-                              <TableCell className="text-sm">{formatDateTime(proposal.proposedAnswerEndAt)}</TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
                               <TableCell className="text-sm">
-                                {formatDateTime(proposal.proposedSettlementAt)}
+                                {formatDateTime(proposal.settlementAt)}
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="capitalize">
@@ -633,7 +799,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                             </TableRow>
                             {expandedRow === proposal.id && (
                               <TableRow>
-                                <TableCell colSpan={8} className="bg-muted/50">
+                                <TableCell colSpan={9} className="bg-muted/50">
                                   <div className="p-4 space-y-4">
                                     <div>
                                       <h4 className="mb-2">Description</h4>
@@ -664,7 +830,311 @@ export function Markets({ onNavigate }: MarketsProps) {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </Fragment>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </TabsContent>
+
+                {/* Live Tab */}
+                <TabsContent value="live" className="m-0 p-6">
+                  {filteredProposals.length === 0 ? (
+                    <EmptyState
+                      icon={<TrendingUp className="h-12 w-12" />}
+                      title="No live markets"
+                      description="Published questions will appear here"
+                    />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Agent</TableHead>
+                          <TableHead>Categories</TableHead>
+                          <TableHead>Live Date</TableHead>
+                          <TableHead>Answer End</TableHead>
+                          <TableHead>Settlement</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="w-32">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProposals.map((proposal) => (
+                          <Fragment key={proposal.id}>
+                            <TableRow>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setExpandedRow(
+                                      expandedRow === proposal.id ? null : proposal.id
+                                    )
+                                  }
+                                >
+                                  {expandedRow === proposal.id ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <p className="max-w-md">{proposal.title}</p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className="border-primary/50 text-primary"
+                                >
+                                  {getAgentName(proposal)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
+                                  return agent?.category ? (
+                                    <Badge
+                                      variant="outline"
+                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                    >
+                                      {agent.category}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  );
+                                })()}
+                              </TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
+                              <TableCell className="text-sm">
+                                {formatDateTime(proposal.settlementAt)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="capitalize">
+                                  {proposal.type === 'multi-option' ? 'Multi-option' : 'Binary'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCloseNow(proposal.id)}
+                                    title="Close Now"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Close
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handlePause(proposal.id)}
+                                    title="Pause"
+                                  >
+                                    <Pause className="h-4 w-4 mr-1" />
+                                    Pause
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditDetails(proposal)}
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {expandedRow === proposal.id && (
+                              <TableRow>
+                                <TableCell colSpan={9} className="bg-muted/50">
+                                  <div className="p-4 space-y-4">
+                                    <div>
+                                      <h4 className="mb-2">Description</h4>
+                                      <p className="text-muted-foreground">
+                                        {proposal.description}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <h4 className="mb-2">Resolution Criteria</h4>
+                                      <p className="text-muted-foreground">
+                                        {proposal.resolutionCriteria}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <h4 className="mb-2">AI Agent</h4>
+                                      <Badge variant="outline" className="border-primary/50 text-primary">
+                                        {getAgentName(proposal)}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        onClick={() => handleEditDetails(proposal)}
+                                      >
+                                        Edit Details
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </TabsContent>
+
+                {/* Paused Tab */}
+                <TabsContent value="paused" className="m-0 p-6">
+                  {filteredProposals.length === 0 ? (
+                    <EmptyState
+                      icon={<Clock className="h-12 w-12" />}
+                      title="No paused markets"
+                      description="Paused questions will appear here"
+                    />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12"></TableHead>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Agent</TableHead>
+                          <TableHead>Categories</TableHead>
+                          <TableHead>Live Date</TableHead>
+                          <TableHead>Answer End</TableHead>
+                          <TableHead>Settlement</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="w-32">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredProposals.map((proposal) => (
+                          <Fragment key={proposal.id}>
+                            <TableRow>
+                              <TableCell>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    setExpandedRow(
+                                      expandedRow === proposal.id ? null : proposal.id
+                                    )
+                                  }
+                                >
+                                  {expandedRow === proposal.id ? (
+                                    <ChevronDown className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronRight className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                              <TableCell>
+                                <p className="max-w-md">{proposal.title}</p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className="border-primary/50 text-primary"
+                                >
+                                  {getAgentName(proposal)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
+                                  return agent?.category ? (
+                                    <Badge
+                                      variant="outline"
+                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                    >
+                                      {agent.category}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  );
+                                })()}
+                              </TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
+                              <TableCell className="text-sm">
+                                {formatDateTime(proposal.settlementAt)}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="capitalize">
+                                  {proposal.type === 'multi-option' ? 'Multi-option' : 'Binary'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUnpause(proposal.id)}
+                                    title="Resume"
+                                  >
+                                    <Play className="h-4 w-4 mr-1" />
+                                    Resume
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCloseNow(proposal.id)}
+                                    title="Close Now"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Close
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditDetails(proposal)}
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                            {expandedRow === proposal.id && (
+                              <TableRow>
+                                <TableCell colSpan={9} className="bg-muted/50">
+                                  <div className="p-4 space-y-4">
+                                    <div>
+                                      <h4 className="mb-2">Description</h4>
+                                      <p className="text-muted-foreground">
+                                        {proposal.description}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <h4 className="mb-2">Resolution Criteria</h4>
+                                      <p className="text-muted-foreground">
+                                        {proposal.resolutionCriteria}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <h4 className="mb-2">AI Agent</h4>
+                                      <Badge variant="outline" className="border-primary/50 text-primary">
+                                        {getAgentName(proposal)}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        onClick={() => handleEditDetails(proposal)}
+                                      >
+                                        Edit Details
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>
@@ -672,7 +1142,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                 </TabsContent>
 
                 {/* Deleted Tab */}
-                <TabsContent value="deleted" className="m-0">
+                <TabsContent value="deleted" className="m-0 p-6">
                   {filteredProposals.length === 0 ? (
                     <EmptyState
                       icon={<X className="h-12 w-12" />}
@@ -686,6 +1156,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                           <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
                           <TableHead>Agent</TableHead>
+                          <TableHead>Categories</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -695,8 +1166,8 @@ export function Markets({ onNavigate }: MarketsProps) {
                       </TableHeader>
                       <TableBody>
                         {filteredProposals.map((proposal) => (
-                          <>
-                            <TableRow key={proposal.id}>
+                          <Fragment key={proposal.id}>
+                            <TableRow>
                               <TableCell>
                                 <Button
                                   variant="ghost"
@@ -725,10 +1196,25 @@ export function Markets({ onNavigate }: MarketsProps) {
                                   {getAgentName(proposal)}
                                 </Badge>
                               </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
+                                  return agent?.category ? (
+                                    <Badge
+                                      variant="outline"
+                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                    >
+                                      {agent.category}
+                                    </Badge>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">-</span>
+                                  );
+                                })()}
+                              </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
-                              <TableCell className="text-sm">{formatDateTime(proposal.proposedAnswerEndAt)}</TableCell>
+                              <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
                               <TableCell className="text-sm">
-                                {formatDateTime(proposal.proposedSettlementAt)}
+                                {formatDateTime(proposal.settlementAt)}
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="capitalize">
@@ -747,7 +1233,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                             </TableRow>
                             {expandedRow === proposal.id && (
                               <TableRow>
-                                <TableCell colSpan={8} className="bg-muted/50">
+                                <TableCell colSpan={9} className="bg-muted/50">
                                   <div className="p-4 space-y-4">
                                     <div>
                                       <h4 className="mb-2">Description</h4>
@@ -778,7 +1264,7 @@ export function Markets({ onNavigate }: MarketsProps) {
                                 </TableCell>
                               </TableRow>
                             )}
-                          </>
+                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>

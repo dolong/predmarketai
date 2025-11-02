@@ -18,7 +18,7 @@ CREATE TABLE questions (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     title VARCHAR(1000) NOT NULL,
     description TEXT,
-    state ENUM('draft', 'awaiting_review', 'published', 'answering_closed', 'awaiting_resolution', 'resolved', 'invalid', 'paused') NOT NULL DEFAULT 'draft',
+    state ENUM('pending', 'approved', 'rejected', 'draft', 'awaiting_review', 'published', 'answering_closed', 'awaiting_resolution', 'resolved', 'invalid', 'paused') NOT NULL DEFAULT 'draft',
     live_date TIMESTAMP NULL,
     answer_end_at TIMESTAMP NOT NULL,
     settlement_at TIMESTAMP NOT NULL,
@@ -28,12 +28,11 @@ CREATE TABLE questions (
     review_status ENUM('pending', 'approved', 'revision_requested'),
     outcome ENUM('YES', 'NO', 'INVALID'),
     answer_count INT DEFAULT 0,
-    assignee VARCHAR(255),
-    type VARCHAR(50) DEFAULT 'Binary',
+    type VARCHAR(50) DEFAULT 'binary',
     pool_total DECIMAL(15,2) DEFAULT 0,
     pool_yes DECIMAL(15,2) DEFAULT 0,
     pool_no DECIMAL(15,2) DEFAULT 0,
-    created_by VARCHAR(255),
+    ai_score DECIMAL(3,2) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
@@ -43,29 +42,10 @@ CREATE TABLE questions (
     INDEX idx_settlement_at (settlement_at),
     INDEX idx_created_at (created_at),
     INDEX idx_agent_id (agent_id),
-    INDEX idx_assignee (assignee),
-    INDEX idx_created_by (created_by)
+    INDEX idx_ai_score (ai_score)
 );
 
--- Proposed Questions table
-CREATE TABLE proposed_questions (
-    id VARCHAR(36) NOT NULL PRIMARY KEY,
-    title VARCHAR(1000) NOT NULL,
-    description TEXT,
-    live_date TIMESTAMP NOT NULL,
-    proposed_answer_end_at TIMESTAMP NOT NULL,
-    proposed_settlement_at TIMESTAMP NOT NULL,
-    resolution_criteria TEXT NOT NULL,
-    agent_id VARCHAR(36) NOT NULL,
-    ai_score DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    type ENUM('binary', 'multi-option') DEFAULT 'binary',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
-    INDEX idx_ai_score (ai_score),
-    INDEX idx_live_date (live_date),
-    INDEX idx_created_at (created_at),
-    INDEX idx_agent_id (agent_id)
-);
+-- Proposed Questions table removed - consolidated into questions table with 'pending', 'approved', 'rejected' states
 
 -- Categories table (normalized for better performance)
 CREATE TABLE categories (
@@ -84,14 +64,7 @@ CREATE TABLE question_categories (
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
--- Proposed Question Categories junction table
-CREATE TABLE proposed_question_categories (
-    proposed_question_id VARCHAR(36) NOT NULL,
-    category_id INT NOT NULL,
-    PRIMARY KEY (proposed_question_id, category_id),
-    FOREIGN KEY (proposed_question_id) REFERENCES proposed_questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-);
+-- Proposed Question Categories junction table removed - use question_categories instead
 
 -- Tags table
 CREATE TABLE tags (
@@ -123,12 +96,12 @@ CREATE TABLE risk_flags (
     INDEX idx_severity (severity)
 );
 
--- Proposed Question Risk Flags junction table
-CREATE TABLE proposed_question_risk_flags (
-    proposed_question_id VARCHAR(36) NOT NULL,
+-- Question Risk Flags junction table
+CREATE TABLE question_risk_flags (
+    question_id VARCHAR(36) NOT NULL,
     risk_flag_id INT NOT NULL,
-    PRIMARY KEY (proposed_question_id, risk_flag_id),
-    FOREIGN KEY (proposed_question_id) REFERENCES proposed_questions(id) ON DELETE CASCADE,
+    PRIMARY KEY (question_id, risk_flag_id),
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
     FOREIGN KEY (risk_flag_id) REFERENCES risk_flags(id) ON DELETE CASCADE
 );
 
@@ -167,8 +140,10 @@ CREATE TABLE agents (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    category VARCHAR(100),
     question_prompt TEXT NOT NULL,
     resolution_prompt TEXT NOT NULL,
+    base_model VARCHAR(100) NOT NULL DEFAULT 'chatgpt-4o-latest',
     frequency ENUM('daily', 'on_update', 'weekly') NOT NULL DEFAULT 'daily',
     status ENUM('active', 'paused', 'error') NOT NULL DEFAULT 'active',
     questions_created INT DEFAULT 0,
@@ -181,7 +156,8 @@ CREATE TABLE agents (
     INDEX idx_frequency (frequency),
     INDEX idx_is_template (is_template),
     INDEX idx_next_run (next_run),
-    INDEX idx_last_run (last_run)
+    INDEX idx_last_run (last_run),
+    INDEX idx_category (category)
 );
 
 -- Agent Sources table (normalized from AgentSource interface)
@@ -216,6 +192,30 @@ CREATE TABLE audit_events (
     INDEX idx_action (action),
     INDEX idx_entity_type (entity_type),
     INDEX idx_entity_id (entity_id)
+);
+
+-- AI Resolution Proposals table
+CREATE TABLE ai_resolution_proposals (
+    id VARCHAR(36) NOT NULL PRIMARY KEY,
+    question_id VARCHAR(36) NOT NULL UNIQUE,
+    resolution ENUM('YES', 'NO', 'INVALID') NOT NULL,
+    confidence_score DECIMAL(5,4) NOT NULL COMMENT 'Confidence score between 0.0000 and 1.0000',
+    reasoning TEXT NOT NULL COMMENT 'AI explanation for the resolution decision',
+    evidence JSON COMMENT 'Supporting evidence and data points',
+    status ENUM('pending', 'approved', 'rejected', 'under_review') NOT NULL DEFAULT 'pending',
+    created_by VARCHAR(255) NOT NULL DEFAULT 'AI',
+    reviewed_by VARCHAR(36) NULL COMMENT 'User ID of reviewer',
+    reviewed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_question_id (question_id),
+    INDEX idx_status (status),
+    INDEX idx_resolution (resolution),
+    INDEX idx_confidence_score (confidence_score),
+    INDEX idx_created_at (created_at),
+    INDEX idx_reviewed_by (reviewed_by)
 );
 
 -- KPI Stats table (for dashboard metrics)

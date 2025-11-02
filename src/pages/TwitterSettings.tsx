@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -16,10 +17,6 @@ import {
 import { Plus, Trash2, Twitter, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface TwitterSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
 interface TwitterAccount {
   id: string;
   username: string;
@@ -28,7 +25,8 @@ interface TwitterAccount {
   postsIngested: number;
 }
 
-export function TwitterSettings({ onNavigate }: TwitterSettingsProps) {
+export function TwitterSettings() {
+  const navigate = useNavigate();
   const [accounts, setAccounts] = useState<TwitterAccount[]>([
     {
       id: "1",
@@ -93,8 +91,8 @@ export function TwitterSettings({ onNavigate }: TwitterSettingsProps) {
         title="Twitter Accounts Settings"
         description="Configure which Twitter accounts to monitor for content ingestion"
         actions={
-          <Button variant="outline" onClick={() => onNavigate("sources")}>
-            Back to Sources
+          <Button variant="outline" onClick={() => navigate("/settings")}>
+            Back to Settings
           </Button>
         }
       />
@@ -138,7 +136,7 @@ export function TwitterSettings({ onNavigate }: TwitterSettingsProps) {
         <CardHeader>
           <CardTitle>Monitored Accounts ({accounts.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {accounts.length === 0 ? (
             <div className="text-center py-12">
               <Twitter className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

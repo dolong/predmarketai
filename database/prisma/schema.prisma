@@ -18,7 +18,8 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  answers Answer[]
+  answers              Answer[]
+  reviewedProposals    AIResolutionProposal[]
 
   @@map("users")
 }
@@ -35,8 +36,7 @@ model Source {
   isPinned    Boolean     @default(false) @map("is_pinned")
   createdAt   DateTime    @default(now()) @map("created_at")
 
-  questionSources         QuestionSource[]
-  proposedQuestionSources ProposedQuestionSource[]
+  questionSources QuestionSource[]
 
   @@map("sources")
 }
@@ -46,8 +46,7 @@ model Category {
   name      String   @unique @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
 
-  questionCategories         QuestionCategory[]
-  proposedQuestionCategories ProposedQuestionCategory[]
+  questionCategories QuestionCategory[]
 
   @@map("categories")
 }
@@ -69,7 +68,7 @@ model RiskFlag {
   severity    RiskSeverity     @default(medium)
   createdAt   DateTime         @default(now()) @map("created_at")
 
-  proposedQuestionRiskFlags ProposedQuestionRiskFlag[]
+  questionRiskFlags QuestionRiskFlag[]
 
   @@map("risk_flags")
 }
@@ -84,52 +83,60 @@ model Question {
   settlementAt       DateTime       @map("settlement_at")
   resolutionCriteria String         @map("resolution_criteria") @db.Text
   topic              String?
+  agentId            String         @map("agent_id")
   reviewStatus       ReviewStatus?  @map("review_status")
   outcome            Outcome?
   answerCount        Int            @default(0) @map("answer_count")
-  assignee           String?
-  type               String?        @default("Binary")
+  type               String?        @default("binary")
   poolTotal          Decimal        @default(0) @map("pool_total") @db.Decimal(15, 2)
   poolYes            Decimal        @default(0) @map("pool_yes") @db.Decimal(15, 2)
   poolNo             Decimal        @default(0) @map("pool_no") @db.Decimal(15, 2)
-  createdBy          String?        @map("created_by")
+  aiScore            Decimal?       @map("ai_score") @db.Decimal(3, 2)
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
 
+  agent              Agent                    @relation(fields: [agentId], references: [id], onDelete: Cascade)
   questionCategories QuestionCategory[]
   questionTags       QuestionTag[]
+  questionRiskFlags  QuestionRiskFlag[]
   questionSources    QuestionSource[]
   outcomeEvidence    OutcomeEvidence[]
   answers            Answer[]
+  aiResolutionProposal AIResolutionProposal?
 
   @@map("questions")
 }
 
-model ProposedQuestion {
-  id                     String       @id @default(cuid())
-  title                  String       @db.VarChar(1000)
-  description            String?      @db.Text
-  liveDate               DateTime     @map("live_date")
-  proposedAnswerEndAt    DateTime     @map("proposed_answer_end_at")
-  proposedSettlementAt   DateTime     @map("proposed_settlement_at")
-  resolutionCriteria     String       @map("resolution_criteria") @db.Text
-  aiScore                Decimal      @default(0.00) @map("ai_score") @db.Decimal(3, 2)
-  type                   QuestionType @default(binary)
-  createdAt              DateTime     @default(now()) @map("created_at")
+// ProposedQuestion model removed - consolidated into Question model with 'pending', 'approved', 'rejected' states
 
-  proposedQuestionCategories ProposedQuestionCategory[]
-  proposedQuestionSources    ProposedQuestionSource[]
-  proposedQuestionRiskFlags  ProposedQuestionRiskFlag[]
+model AIResolutionProposal {
+  id              String                   @id @default(cuid())
+  questionId      String                   @unique @map("question_id")
+  resolution      Outcome
+  confidenceScore Decimal                  @map("confidence_score") @db.Decimal(5, 4)
+  reasoning       String                   @db.Text
+  evidence        Json?
+  status          ResolutionProposalStatus @default(pending)
+  createdBy       String                   @default("AI") @map("created_by")
+  reviewedBy      String?                  @map("reviewed_by")
+  reviewedAt      DateTime?                @map("reviewed_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
 
-  @@map("proposed_questions")
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  reviewer User?    @relation(fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@map("ai_resolution_proposals")
 }
 
 model Agent {
   id               String          @id @default(cuid())
   name             String
   description      String?         @db.Text
+  category         String?         @db.VarChar(100)
   questionPrompt   String          @map("question_prompt") @db.Text
   resolutionPrompt String          @map("resolution_prompt") @db.Text
+  baseModel        String          @default("chatgpt-4o-latest") @map("base_model") @db.VarChar(100)
   frequency        AgentFrequency  @default(daily)
   status           AgentStatus     @default(active)
   questionsCreated Int             @default(0) @map("questions_created")
@@ -140,6 +147,7 @@ model Agent {
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
   agentSources AgentSource[]
+  questions    Question[]
 
   @@map("agents")
 }
@@ -263,38 +271,17 @@ model QuestionSource {
   @@map("question_sources")
 }
 
-model ProposedQuestionCategory {
-  proposedQuestionId String @map("proposed_question_id")
-  categoryId         Int    @map("category_id")
+// ProposedQuestionCategory, ProposedQuestionSource, and ProposedQuestionRiskFlag models removed - use Question relations instead
 
-  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
-  category         Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+model QuestionRiskFlag {
+  questionId String @map("question_id")
+  riskFlagId Int    @map("risk_flag_id")
 
-  @@id([proposedQuestionId, categoryId])
-  @@map("proposed_question_categories")
-}
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  riskFlag RiskFlag @relation(fields: [riskFlagId], references: [id], onDelete: Cascade)
 
-model ProposedQuestionSource {
-  id                 Int      @id @default(autoincrement())
-  proposedQuestionId String   @map("proposed_question_id")
-  sourceId           String   @map("source_id")
-  createdAt          DateTime @default(now()) @map("created_at")
-
-  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
-  source           Source           @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-
-  @@map("proposed_question_sources")
-}
-
-model ProposedQuestionRiskFlag {
-  proposedQuestionId String @map("proposed_question_id")
-  riskFlagId         Int    @map("risk_flag_id")
-
-  proposedQuestion ProposedQuestion @relation(fields: [proposedQuestionId], references: [id], onDelete: Cascade)
-  riskFlag         RiskFlag         @relation(fields: [riskFlagId], references: [id], onDelete: Cascade)
-
-  @@id([proposedQuestionId, riskFlagId])
-  @@map("proposed_question_risk_flags")
+  @@id([questionId, riskFlagId])
+  @@map("question_risk_flags")
 }
 
 // Enums
@@ -311,6 +298,9 @@ enum TrustLevel {
 }
 
 enum QuestionState {
+  pending
+  approved
+  rejected
   draft
   awaiting_review
   published
@@ -386,4 +376,11 @@ enum Trend {
   up
   down
   neutral
+}
+
+enum ResolutionProposalStatus {
+  pending
+  approved
+  rejected
+  under_review
 }

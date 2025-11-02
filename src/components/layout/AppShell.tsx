@@ -1,4 +1,5 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -42,32 +43,31 @@ import { Separator } from "../ui/separator";
 
 interface AppShellProps {
   children: ReactNode;
-  currentPage: string;
-  onNavigate: (page: string) => void;
 }
 
 const navigation = [
   {
     label: "Main",
     items: [
-      { id: "overview", label: "Overview", icon: LayoutDashboard },
-      { id: "markets", label: "Markets", icon: Sparkles },
-      { id: "questions", label: "Live Markets", icon: TrendingUp },
-      { id: "resolve", label: "Resolve Markets", icon: Target },
-      { id: "answers", label: "Market History", icon: MessageSquare },
-      { id: "agents", label: "AI Agents", icon: Bot },
+      { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/overview" },
+      { id: "markets", label: "Markets", icon: Sparkles, path: "/markets" },
+      { id: "resolve", label: "Resolve Markets", icon: Target, path: "/resolve" },
+      { id: "answers", label: "Market History", icon: MessageSquare, path: "/answers" },
+      { id: "agents", label: "AI Agents", icon: Bot, path: "/agents" },
     ],
   },
   {
     label: "Admin",
     items: [
-      { id: "reports", label: "Reports", icon: BarChart3 },
-      { id: "settings", label: "Settings", icon: Settings },
+      { id: "reports", label: "Reports", icon: BarChart3, path: "/reports" },
+      { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
 ];
 
-export function AppShell({ children, currentPage, onNavigate }: AppShellProps) {
+export function AppShell({ children }: AppShellProps) {
+  const location = useLocation();
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -91,11 +91,13 @@ export function AppShell({ children, currentPage, onNavigate }: AppShellProps) {
                   {section.items.map((item) => (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
-                        onClick={() => onNavigate(item.id)}
-                        isActive={currentPage === item.id}
+                        asChild
+                        isActive={location.pathname === item.path}
                       >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.label}</span>
+                        <Link to={item.path}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.label}</span>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}

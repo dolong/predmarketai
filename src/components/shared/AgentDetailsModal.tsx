@@ -10,7 +10,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Agent, ProposedQuestion, AgentSourceType } from "../../lib/types";
-import { mockProposedQuestions } from "../../lib/mock-data";
+import { mockQuestions } from "../../lib/mock-data";
 import { formatDateTime, cn } from "../../lib/utils";
 import {
   Globe,
@@ -28,6 +28,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { toast } from "sonner@2.0.3";
+import { AgentRunner } from "../../api/agentRunner";
 
 interface AgentDetailsModalProps {
   agent: Agent | null;
@@ -36,6 +37,7 @@ interface AgentDetailsModalProps {
   onEditAgent?: (agent: Agent) => void;
   onRunAgent?: (agentId: string) => void;
   onTogglePause?: (agentId: string) => void;
+  onNavigate?: (page: string, params?: Record<string, string>) => void;
 }
 
 
@@ -46,6 +48,7 @@ export function AgentDetailsModal({
   onEditAgent,
   onRunAgent,
   onTogglePause,
+  onNavigate,
 }: AgentDetailsModalProps) {
   const [generatedQuestions, setGeneratedQuestions] = useState<ProposedQuestion[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -53,7 +56,7 @@ export function AgentDetailsModal({
   useEffect(() => {
     if (agent && open) {
       // Filter questions by this specific agent
-      const agentQuestions = mockProposedQuestions.filter(q => q.agentId === agent.id);
+      const agentQuestions = mockQuestions.filter(q => q.agentId === agent.id && q.state === 'pending');
       setGeneratedQuestions(agentQuestions);
     }
   }, [agent, open]);
@@ -89,66 +92,26 @@ export function AgentDetailsModal({
   };
 
   const handleRunNow = async () => {
+    if (!agent) return;
+
     setIsRunning(true);
 
     try {
-      // Get the API endpoint from the agent's source configuration
-      const apiSource = agent.sources.find(source => source.type === 'api');
-      const apiEndpoint = apiSource?.config?.apiEndpoint || 'https://theanomaly.app.n8n.cloud/webhook/getbtcdata?ticker=btc';
+      console.log(`Running agent: ${agent.name}`);
 
-      const requestBody = {
-        Question: agent.questionPrompt
-      };
+      // Use the AgentRunner service to execute the agent
+      const result = await AgentRunner.runAgent(agent);
 
-      // Make API call to generate question
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to generate question: ${response.status}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate question');
       }
 
-      const responseText = await response.text();
-
-      if (!responseText || responseText.length === 0) {
-        throw new Error('API returned empty response');
+      if (!result.question) {
+        throw new Error('No question was generated');
       }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (jsonError) {
-        throw new Error(`API returned invalid JSON: ${responseText}`);
-      }
-
-      // Generate current Bitcoin price for mock data (between $65,000 - $75,000)
-      const currentPrice = Math.floor(Math.random() * 10000 + 65000);
-      const targetPrice = Math.floor(Math.random() * 5000 + currentPrice - 2500);
-
-      // Create new question with API response and mock data
-      const newQuestion: ProposedQuestion = {
-        id: `gq${Date.now()}`,
-        title: data.question || `Will Bitcoin close above $${targetPrice.toLocaleString()} today?`,
-        description: `dummy desc.`,
-        liveDate: new Date(),
-        proposedAnswerEndAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-        proposedSettlementAt: new Date(Date.now() + 25 * 60 * 60 * 1000), // 25 hours from now
-        resolutionCriteria: `dummy resolution desc.`,
-        agentId: agent.id,
-        aiScore: Math.random() * 0.1 + 0.85, // Random score between 0.85-0.95
-        riskFlags: [],
-        createdAt: new Date(),
-        categories: ['Cryptocurrency', 'Bitcoin'],
-        type: 'binary',
-      };
 
       // Add new question to the beginning of the list
-      setGeneratedQuestions(prev => [newQuestion, ...prev]);
+      setGeneratedQuestions(prev => [result.question!, ...prev]);
 
       setIsRunning(false);
       onRunAgent?.(agent.id);
@@ -156,29 +119,8 @@ export function AgentDetailsModal({
 
     } catch (error) {
       console.error('Error generating question:', error);
-
-      // Fallback to mock generation if API fails
-      const fallbackPrice = Math.floor(Math.random() * 5000 + 67000);
-      const newQuestion: ProposedQuestion = {
-        id: `gq${Date.now()}`,
-        title: `Will Bitcoin close above $${fallbackPrice.toLocaleString()} today?`,
-        description: 'A daily prediction market asking whether Bitcoin will close above today\'s target price (API fallback).',
-        liveDate: new Date(),
-        proposedAnswerEndAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        proposedSettlementAt: new Date(Date.now() + 25 * 60 * 60 * 1000),
-        resolutionCriteria: `Resolves YES if Bitcoin closes above $${fallbackPrice.toLocaleString()} today based on major exchanges.`,
-        agentId: agent.id,
-        aiScore: Math.random() * 0.1 + 0.85,
-        riskFlags: ['api-error'],
-        createdAt: new Date(),
-        categories: ['Cryptocurrency', 'Bitcoin'],
-        type: 'binary',
-      };
-
-      setGeneratedQuestions(prev => [newQuestion, ...prev]);
       setIsRunning(false);
-      onRunAgent?.(agent.id);
-      toast.error("API call failed, generated fallback question");
+      toast.error(error instanceof Error ? error.message : "Failed to generate question");
     }
   };
 
@@ -189,6 +131,13 @@ export function AgentDetailsModal({
 
   const handleTogglePause = () => {
     onTogglePause?.(agent.id);
+  };
+
+  const handleViewAll = () => {
+    if (agent && onNavigate) {
+      onNavigate('/markets', { agent: agent.name, tab: 'suggestions' });
+      onOpenChange(false);
+    }
   };
 
   // Category color mapping
@@ -220,6 +169,14 @@ export function AgentDetailsModal({
                 >
                   {agent.status}
                 </Badge>
+                {agent.category && (
+                  <Badge
+                    variant="outline"
+                    className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                  >
+                    {agent.category}
+                  </Badge>
+                )}
               </DialogTitle>
               <DialogDescription className="text-base mt-2">
                 {agent.description}
@@ -319,7 +276,7 @@ export function AgentDetailsModal({
                 <h2 className="text-xl">🔥 Generated Questions</h2>
                 <Badge variant="secondary">{generatedQuestions.length}</Badge>
               </div>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={handleViewAll}>
                 View All
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
@@ -341,7 +298,7 @@ export function AgentDetailsModal({
                     'from-orange-500/10 to-amber-500/10'
                   } opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                  <CardContent className="relative">
+                  <CardContent className="relative pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -381,7 +338,7 @@ export function AgentDetailsModal({
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              <span>Ends {question.proposedAnswerEndAt.toLocaleDateString()}</span>
+                              <span>Ends {question.answerEndAt.toLocaleDateString()}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Sparkles className="h-3 w-3" />

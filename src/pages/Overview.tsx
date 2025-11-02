@@ -1,14 +1,14 @@
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { mockProposedQuestions, mockAgents } from "../lib/mock-data";
+import { mockQuestions, mockAgents } from "../lib/mock-data";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { 
-  Sparkles, 
-  TrendingUp, 
-  Zap, 
-  ArrowRight, 
-  Clock, 
+import {
+  Sparkles,
+  TrendingUp,
+  Zap,
+  ArrowRight,
+  Clock,
   Users,
   Brain,
   Tag,
@@ -16,6 +16,7 @@ import {
   Calendar as CalendarIcon
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -36,11 +37,8 @@ import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal"
 import { EditQuestionDetailsModal } from "../components/shared/EditQuestionDetailsModal";
 import { ProposedQuestion, Question, Agent } from "../lib/types";
 
-interface OverviewProps {
-  onNavigate: (page: string) => void;
-}
-
-export function Overview({ onNavigate }: OverviewProps) {
+export function Overview() {
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
 
   // Helper function to get agent name from a proposal
@@ -78,15 +76,15 @@ export function Overview({ onNavigate }: OverviewProps) {
       description: suggestion.description,
       state: 'published', // Overview shows live/published questions
       liveDate: suggestion.liveDate || suggestion.createdAt, // Use liveDate or fallback to createdAt
-      answerEndAt: suggestion.proposedAnswerEndAt,
-      settlementAt: suggestion.proposedSettlementAt,
+      answerEndAt: suggestion.answerEndAt,
+      settlementAt: suggestion.settlementAt,
       resolutionCriteria: suggestion.resolutionCriteria,
       categories: suggestion.categories,
       agentId: suggestion.agentId,
       answerCount: 0, // Default values
       createdAt: suggestion.createdAt,
       updatedAt: new Date(),
-      type: suggestion.type === 'binary' ? 'Binary' : 'Multiple Choice',
+      type: suggestion.type || 'binary',
     };
 
     setSelectedEditQuestion(questionForEdit);
@@ -103,18 +101,18 @@ export function Overview({ onNavigate }: OverviewProps) {
     // In a real app, this would update the backend and move to queue
     // For now, we'll navigate to Markets page
     console.log('Queued for review:', updatedQuestion);
-    onNavigate('markets');
+    navigate('/markets');
   };
 
   // Get trending AI suggestions (highest scores)
-  const trendingSuggestions = [...mockProposedQuestions]
+  const trendingSuggestions = [...mockQuestions.filter(q => q.state === 'pending')]
     .sort((a, b) => b.aiScore - a.aiScore)
     .slice(0, 5);
 
   const stats = [
     { label: 'Active Questions', value: '23', icon: Zap, trend: '+5 this week' },
     { label: 'Total Participants', value: '1,247', icon: Users, trend: '+12% this month' },
-    { label: 'AI Suggestions', value: mockProposedQuestions.length.toString(), icon: Brain, trend: '+3 today' },
+    { label: 'AI Suggestions', value: mockQuestions.filter(q => q.state === 'pending').length.toString(), icon: Brain, trend: '+3 today' },
   ];
 
   // Category color mapping
@@ -131,22 +129,23 @@ export function Overview({ onNavigate }: OverviewProps) {
     <div className="space-y-8 pb-8">
       {/* Compact Search Bar */}
       <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
+            <Input
               placeholder="Make a question about $FLOKI"
-              className="pl-10 bg-white border-slate-200 h-11"
+              className="pl-10 bg-white border-slate-200 h-11 w-full"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
-          <Button 
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-sm"
+          <Button
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-sm sm:whitespace-nowrap"
             onClick={handleOpenModal}
           >
             <Brain className="h-4 w-4 mr-2" />
-            Generate Question
+            <span className="hidden sm:inline">Generate Question</span>
+            <span className="sm:hidden">Generate</span>
           </Button>
         </div>
       </div>
@@ -176,7 +175,7 @@ export function Overview({ onNavigate }: OverviewProps) {
             <TrendingUp className="h-5 w-5 text-primary" />
             <h2 className="text-2xl">🔥 Top AI Suggestions</h2>
           </div>
-          <Button variant="ghost" onClick={() => onNavigate('markets')}>
+          <Button variant="ghost" onClick={() => navigate('/markets')}>
             View All Suggestions
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
@@ -238,7 +237,7 @@ export function Overview({ onNavigate }: OverviewProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>Ends {suggestion.proposedAnswerEndAt.toLocaleDateString()}</span>
+                      <span>Ends {suggestion.answerEndAt.toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
@@ -263,11 +262,11 @@ export function Overview({ onNavigate }: OverviewProps) {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button onClick={() => onNavigate('suggest')} className="gradient-primary text-white border-0">
+              <Button onClick={() => navigate('/markets')} className="gradient-primary text-white border-0">
                 <Brain className="h-4 w-4 mr-2" />
                 AI Generate
               </Button>
-              <Button variant="outline" onClick={() => onNavigate('questions')}>
+              <Button variant="outline" onClick={() => navigate('/questions')}>
                 Manual Create
               </Button>
             </div>

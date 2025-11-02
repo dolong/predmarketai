@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
@@ -45,11 +46,8 @@ import {
 } from "../components/ui/dropdown-menu";
 import { toast } from "sonner@2.0.3";
 
-interface ManageQuestionsProps {
-  onNavigate: (page: string) => void;
-}
-
-export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
+export function ManageQuestions() {
+  const navigate = useNavigate();
   const [questions, setQuestions] = useState<Question[]>(mockQuestions);
   const [searchQuery, setSearchQuery] = useState("");
   const [stateFilter, setStateFilter] = useState<string>("all");
@@ -60,6 +58,9 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
   const [editModalOpen, setEditModalOpen] = useState(false);
 
   const filteredQuestions = questions.filter((q) => {
+    // Exclude AI suggestion workflow states (those belong in Markets page)
+    if (q.state === 'pending' || q.state === 'approved' || q.state === 'rejected') return false;
+
     // Exclude awaiting_resolution questions as they appear in Resolve Markets
     if (q.state === 'awaiting_resolution') return false;
 
@@ -80,7 +81,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
   };
 
   const handleResolve = (id: string) => {
-    onNavigate(`resolve/${id}`);
+    navigate(`/resolve/${id}`);
   };
 
   const handleCloseNow = (question: Question) => {
@@ -144,7 +145,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
         title="Live Markets"
         description="Browse and manage all active prediction markets"
         actions={
-          <Button onClick={() => onNavigate("suggest")}>
+          <Button onClick={() => navigate("/markets")}>
             <Plus className="h-4 w-4 mr-2" />
             New Question
           </Button>
@@ -182,7 +183,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
 
       {/* Questions Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           <Table>
             <TableHeader>
               <TableRow>
@@ -193,14 +194,13 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                 <TableHead>Answer Window</TableHead>
                 <TableHead>Settlement</TableHead>
                 <TableHead>Pool Size</TableHead>
-                <TableHead>Created By</TableHead>
                 <TableHead className="w-48">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredQuestions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No questions found
                   </TableCell>
                 </TableRow>
@@ -215,8 +215,8 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                       <p className="max-w-md">{question.title}</p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {question.type || 'Binary'}
+                      <Badge variant="outline" className="capitalize">
+                        {question.type === 'multi-option' ? 'Multi-option' : question.type || 'binary'}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -266,11 +266,6 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                         <span className="text-muted-foreground text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <p className="text-sm">
-                        {question.createdBy || '-'}
-                      </p>
-                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       {question.state === 'published' ? (
                         <div className="flex gap-2">
@@ -308,7 +303,7 @@ export function ManageQuestions({ onNavigate }: ManageQuestionsProps) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => onNavigate(`questions/${question.id}`)}
+                              onClick={() => navigate(`/questions/${question.id}`)}
                             >
                               View Details
                             </DropdownMenuItem>

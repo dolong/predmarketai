@@ -64,45 +64,70 @@ CREATE TABLE IF NOT EXISTS questions (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
     title VARCHAR(1000) NOT NULL,
     description TEXT,
-    state ENUM('draft', 'awaiting_review', 'published', 'answering_closed', 'awaiting_resolution', 'resolved', 'invalid', 'paused') NOT NULL DEFAULT 'draft',
+    state ENUM('pending', 'approved', 'rejected', 'draft', 'awaiting_review', 'published', 'answering_closed', 'awaiting_resolution', 'resolved', 'invalid', 'paused') NOT NULL DEFAULT 'draft',
     live_date TIMESTAMP NULL,
     answer_end_at TIMESTAMP NOT NULL,
     settlement_at TIMESTAMP NOT NULL,
     resolution_criteria TEXT NOT NULL,
     topic VARCHAR(255),
+    agent_id VARCHAR(36) NOT NULL,
     review_status ENUM('pending', 'approved', 'revision_requested'),
     outcome ENUM('YES', 'NO', 'INVALID'),
     answer_count INT DEFAULT 0,
-    assignee VARCHAR(255),
-    type VARCHAR(50) DEFAULT 'Binary',
+    type VARCHAR(50) DEFAULT 'binary',
     pool_total DECIMAL(15,2) DEFAULT 0,
     pool_yes DECIMAL(15,2) DEFAULT 0,
     pool_no DECIMAL(15,2) DEFAULT 0,
-    created_by VARCHAR(255),
+    ai_score DECIMAL(3,2) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_state (state),
     INDEX idx_live_date (live_date),
     INDEX idx_answer_end_at (answer_end_at),
     INDEX idx_settlement_at (settlement_at),
-    INDEX idx_created_at (created_at)
+    INDEX idx_created_at (created_at),
+    INDEX idx_agent_id (agent_id),
+    INDEX idx_ai_score (ai_score)
 );
 
--- Proposed Questions table
-CREATE TABLE IF NOT EXISTS proposed_questions (
+-- Proposed Questions table removed - consolidated into questions table with 'pending', 'approved', 'rejected' states
+
+-- AI Agents table
+CREATE TABLE IF NOT EXISTS agents (
     id VARCHAR(36) NOT NULL PRIMARY KEY,
-    title VARCHAR(1000) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
-    live_date TIMESTAMP NOT NULL,
-    proposed_answer_end_at TIMESTAMP NOT NULL,
-    proposed_settlement_at TIMESTAMP NOT NULL,
-    resolution_criteria TEXT NOT NULL,
-    ai_score DECIMAL(3,2) NOT NULL DEFAULT 0.00,
-    type ENUM('binary', 'multi-option') DEFAULT 'binary',
+    question_prompt TEXT NOT NULL,
+    resolution_prompt TEXT NOT NULL,
+    base_model VARCHAR(100) NOT NULL DEFAULT 'chatgpt-4o-latest',
+    frequency ENUM('daily', 'on_update', 'weekly') NOT NULL DEFAULT 'daily',
+    status ENUM('active', 'paused', 'error') NOT NULL DEFAULT 'active',
+    questions_created INT DEFAULT 0,
+    last_run TIMESTAMP NULL,
+    next_run TIMESTAMP NULL,
+    is_template BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_ai_score (ai_score),
-    INDEX idx_live_date (live_date),
-    INDEX idx_created_at (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_status (status),
+    INDEX idx_frequency (frequency),
+    INDEX idx_is_template (is_template),
+    INDEX idx_next_run (next_run),
+    INDEX idx_last_run (last_run)
+);
+
+-- Agent Sources table
+CREATE TABLE IF NOT EXISTS agent_sources (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    agent_id VARCHAR(36) NOT NULL,
+    type ENUM('website', 'api', 'x', 'reddit', 'feed') NOT NULL,
+    config_url TEXT,
+    config_subreddit VARCHAR(255),
+    config_api_endpoint TEXT,
+    config_feed_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE,
+    INDEX idx_agent_id (agent_id),
+    INDEX idx_type (type)
 );
 
 -- Junction tables
@@ -111,14 +136,6 @@ CREATE TABLE IF NOT EXISTS question_categories (
     category_id INT NOT NULL,
     PRIMARY KEY (question_id, category_id),
     FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS proposed_question_categories (
-    proposed_question_id VARCHAR(36) NOT NULL,
-    category_id INT NOT NULL,
-    PRIMARY KEY (proposed_question_id, category_id),
-    FOREIGN KEY (proposed_question_id) REFERENCES proposed_questions(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
 
@@ -141,24 +158,17 @@ CREATE TABLE IF NOT EXISTS question_sources (
     INDEX idx_source_id (source_id)
 );
 
-CREATE TABLE IF NOT EXISTS proposed_question_sources (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    proposed_question_id VARCHAR(36) NOT NULL,
-    source_id VARCHAR(36) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (proposed_question_id) REFERENCES proposed_questions(id) ON DELETE CASCADE,
-    FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE,
-    INDEX idx_proposed_question_id (proposed_question_id),
-    INDEX idx_source_id (source_id)
-);
-
-CREATE TABLE IF NOT EXISTS proposed_question_risk_flags (
-    proposed_question_id VARCHAR(36) NOT NULL,
+CREATE TABLE IF NOT EXISTS question_risk_flags (
+    question_id VARCHAR(36) NOT NULL,
     risk_flag_id INT NOT NULL,
-    PRIMARY KEY (proposed_question_id, risk_flag_id),
-    FOREIGN KEY (proposed_question_id) REFERENCES proposed_questions(id) ON DELETE CASCADE,
+    PRIMARY KEY (question_id, risk_flag_id),
+    FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE,
     FOREIGN KEY (risk_flag_id) REFERENCES risk_flags(id) ON DELETE CASCADE
 );
+
+-- Add foreign key constraint for questions.agent_id
+ALTER TABLE questions ADD CONSTRAINT fk_questions_agent_id
+    FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE;
 
 -- Insert initial data
 INSERT IGNORE INTO categories (name) VALUES

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -21,13 +22,13 @@ import {
 import { AddAgentModal } from "../components/shared/AddAgentModal";
 import { EditAgentModal } from "../components/shared/EditAgentModal";
 import { AgentDetailsModal } from "../components/shared/AgentDetailsModal";
-import { 
-  Plus, 
-  Search, 
-  MoreHorizontal, 
-  Play, 
-  Pause, 
-  Settings, 
+import {
+  Plus,
+  Search,
+  MoreHorizontal,
+  Play,
+  Pause,
+  Settings,
   Trash2,
   Globe,
   Link as LinkIcon,
@@ -40,11 +41,8 @@ import { Agent, AgentSource, AgentSourceType } from "../lib/types";
 import { formatDateTime } from "../lib/utils";
 import { toast } from "sonner@2.0.3";
 
-interface AgentsProps {
-  onNavigate: (page: string) => void;
-}
-
-export function Agents({ onNavigate }: AgentsProps) {
+export function Agents() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState<Agent[]>(mockAgents);
   const [searchQuery, setSearchQuery] = useState("");
   const [addAgentOpen, setAddAgentOpen] = useState(false);
@@ -66,9 +64,11 @@ export function Agents({ onNavigate }: AgentsProps) {
       id: `agent${agents.length + 1}`,
       name: agent.name!,
       description: agent.description || "",
+      category: agent.category,
       sources: agent.sources!,
       questionPrompt: agent.questionPrompt!,
       resolutionPrompt: agent.resolutionPrompt!,
+      baseModel: agent.baseModel || 'chatgpt-4o-latest',
       frequency: agent.frequency!,
       status: agent.status || 'active',
       questionsCreated: 0,
@@ -122,6 +122,15 @@ export function Agents({ onNavigate }: AgentsProps) {
   const handleDeleteAgent = (agentId: string) => {
     setAgents(agents.filter(a => a.id !== agentId));
     toast.success("Agent deleted");
+  };
+
+  const handleNavigate = (page: string, params?: Record<string, string>) => {
+    if (params) {
+      const searchParams = new URLSearchParams(params);
+      navigate(`${page}?${searchParams.toString()}`);
+    } else {
+      navigate(page);
+    }
   };
 
   const getSourceIcon = (type: AgentSourceType) => {
@@ -185,7 +194,14 @@ export function Agents({ onNavigate }: AgentsProps) {
                     Template
                   </Badge>
                 </CardTitle>
-                <CardDescription>{template.description}</CardDescription>
+                <CardDescription>
+                  {template.description}
+                  {template.category && (
+                    <Badge variant="outline" className="mt-2 mr-2">
+                      {template.category}
+                    </Badge>
+                  )}
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -237,11 +253,12 @@ export function Agents({ onNavigate }: AgentsProps) {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Agent Name</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Sources</TableHead>
                 <TableHead>Frequency</TableHead>
                 <TableHead>Status</TableHead>
@@ -254,7 +271,7 @@ export function Agents({ onNavigate }: AgentsProps) {
             <TableBody>
               {customAgents.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No custom agents yet. Create one using a template or start from scratch.
                   </TableCell>
                 </TableRow>
@@ -270,6 +287,15 @@ export function Agents({ onNavigate }: AgentsProps) {
                         <p className="font-medium">{agent.name}</p>
                         <p className="text-sm text-muted-foreground">{agent.description}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {agent.category ? (
+                        <Badge variant="outline">
+                          {agent.category}
+                        </Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
@@ -352,6 +378,7 @@ export function Agents({ onNavigate }: AgentsProps) {
         onEditAgent={handleEditAgent}
         onRunAgent={handleRunAgent}
         onTogglePause={handlePauseAgent}
+        onNavigate={handleNavigate}
       />
 
       <AddAgentModal

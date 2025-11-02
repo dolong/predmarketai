@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -17,10 +18,6 @@ import {
 import { Plus, Trash2, Newspaper, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface NewsSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
 interface NewsSource {
   id: string;
   name: string;
@@ -31,7 +28,8 @@ interface NewsSource {
   articlesIngested: number;
 }
 
-export function NewsSettings({ onNavigate }: NewsSettingsProps) {
+export function NewsSettings() {
+  const navigate = useNavigate();
   const [sources, setSources] = useState<NewsSource[]>([
     {
       id: "1",
@@ -132,7 +130,7 @@ export function NewsSettings({ onNavigate }: NewsSettingsProps) {
         title="News Sources Settings"
         description="Configure which news outlets to monitor for content ingestion"
         actions={
-          <Button variant="outline" onClick={() => onNavigate("sources")}>
+          <Button variant="outline" onClick={() => navigate("/settings")}>
             Back to Sources
           </Button>
         }
@@ -183,7 +181,7 @@ export function NewsSettings({ onNavigate }: NewsSettingsProps) {
         <CardHeader>
           <CardTitle>Configured Sources ({sources.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {sources.length === 0 ? (
             <div className="text-center py-12">
               <Newspaper className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -26,10 +27,6 @@ import { Alert, AlertDescription } from "../components/ui/alert";
 import { Plus, Trash2, Send, CheckCircle, XCircle, Info } from "lucide-react";
 import { toast } from "sonner@2.0.3";
 
-interface TelegramSettingsProps {
-  onNavigate: (page: string) => void;
-}
-
 interface TelegramGroup {
   id: string;
   name: string;
@@ -40,7 +37,8 @@ interface TelegramGroup {
   status: "active" | "error" | "pending";
 }
 
-export function TelegramSettings({ onNavigate }: TelegramSettingsProps) {
+export function TelegramSettings() {
+  const navigate = useNavigate();
   const [groups, setGroups] = useState<TelegramGroup[]>([
     {
       id: "1",

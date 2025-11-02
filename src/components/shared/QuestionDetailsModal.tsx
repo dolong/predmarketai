@@ -222,26 +222,26 @@ export function QuestionDetailsModal({
                     variant="outline"
                     className={cn(
                       "justify-start text-left",
-                      !editedQuestion.proposedAnswerEndAt && "text-muted-foreground"
+                      !editedQuestion.answerEndAt && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedQuestion.proposedAnswerEndAt
-                      ? formatDate(editedQuestion.proposedAnswerEndAt)
+                    {editedQuestion.answerEndAt
+                      ? formatDate(editedQuestion.answerEndAt)
                       : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
-                    selected={editedQuestion.proposedAnswerEndAt}
+                    selected={editedQuestion.answerEndAt}
                     onSelect={(date) => {
                       if (date) {
-                        const currentTime = formatTimeEST(editedQuestion.proposedAnswerEndAt);
+                        const currentTime = formatTimeEST(editedQuestion.answerEndAt);
                         const newDate = updateDateTime(date, currentTime);
                         setEditedQuestion({
                           ...editedQuestion,
-                          proposedAnswerEndAt: newDate,
+                          answerEndAt: newDate,
                         });
                       }
                       setAnswerEndPopoverOpen(false);
@@ -252,12 +252,12 @@ export function QuestionDetailsModal({
               </Popover>
               <Input
                 type="time"
-                value={formatTimeEST(editedQuestion.proposedAnswerEndAt)}
+                value={formatTimeEST(editedQuestion.answerEndAt)}
                 onChange={(e) => {
-                  const newDate = updateDateTime(editedQuestion.proposedAnswerEndAt, e.target.value);
+                  const newDate = updateDateTime(editedQuestion.answerEndAt, e.target.value);
                   setEditedQuestion({
                     ...editedQuestion,
-                    proposedAnswerEndAt: newDate,
+                    answerEndAt: newDate,
                   });
                 }}
               />
@@ -274,26 +274,26 @@ export function QuestionDetailsModal({
                     variant="outline"
                     className={cn(
                       "justify-start text-left",
-                      !editedQuestion.proposedSettlementAt && "text-muted-foreground"
+                      !editedQuestion.settlementAt && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {editedQuestion.proposedSettlementAt
-                      ? formatDate(editedQuestion.proposedSettlementAt)
+                    {editedQuestion.settlementAt
+                      ? formatDate(editedQuestion.settlementAt)
                       : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
-                    selected={editedQuestion.proposedSettlementAt}
+                    selected={editedQuestion.settlementAt}
                     onSelect={(date) => {
                       if (date) {
-                        const currentTime = formatTimeEST(editedQuestion.proposedSettlementAt);
+                        const currentTime = formatTimeEST(editedQuestion.settlementAt);
                         const newDate = updateDateTime(date, currentTime);
                         setEditedQuestion({
                           ...editedQuestion,
-                          proposedSettlementAt: newDate,
+                          settlementAt: newDate,
                         });
                       }
                       setSettlementPopoverOpen(false);
@@ -304,12 +304,12 @@ export function QuestionDetailsModal({
               </Popover>
               <Input
                 type="time"
-                value={formatTimeEST(editedQuestion.proposedSettlementAt)}
+                value={formatTimeEST(editedQuestion.settlementAt)}
                 onChange={(e) => {
-                  const newDate = updateDateTime(editedQuestion.proposedSettlementAt, e.target.value);
+                  const newDate = updateDateTime(editedQuestion.settlementAt, e.target.value);
                   setEditedQuestion({
                     ...editedQuestion,
-                    proposedSettlementAt: newDate,
+                    settlementAt: newDate,
                   });
                 }}
               />
@@ -353,11 +353,16 @@ export function QuestionDetailsModal({
                 const agent = mockAgents.find(a => a.id === editedQuestion.agentId);
                 return (
                   <div className="p-3 rounded-lg border bg-muted/30">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <Badge variant="outline" className="border-primary/50 text-primary">
                         AI Generated
                       </Badge>
                       <span className="font-medium">{agent?.name || 'Unknown Agent'}</span>
+                      {agent?.category && (
+                        <Badge variant="outline" className="ml-auto">
+                          {agent.category}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
                       {agent?.description || 'AI Agent for generating and resolving questions'}

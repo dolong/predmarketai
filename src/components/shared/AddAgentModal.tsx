@@ -38,10 +38,12 @@ export function AddAgentModal({
 }: AddAgentModalProps) {
   const [name, setName] = useState(templateAgent?.name || "");
   const [description, setDescription] = useState(templateAgent?.description || "");
+  const [category, setCategory] = useState(templateAgent?.category || "");
   const [sources, setSources] = useState<AgentSource[]>(templateAgent?.sources || []);
   const [questionPrompt, setQuestionPrompt] = useState(templateAgent?.questionPrompt || "");
   const [resolutionPrompt, setResolutionPrompt] = useState(templateAgent?.resolutionPrompt || "");
-  const [frequency, setFrequency] = useState<AgentFrequency>(templateAgent?.frequency || "daily");
+  const [baseModel, setBaseModel] = useState(templateAgent?.baseModel || "chatgpt-4o-latest");
+  const [frequency, setFrequency] = useState<AgentFrequency>(templateAgent?.frequency || "on_update");
   
   const [newSourceType, setNewSourceType] = useState<AgentSourceType | "">("");
   const [newSourceConfig, setNewSourceConfig] = useState("");
@@ -90,9 +92,11 @@ export function AddAgentModal({
     const agent: Partial<Agent> = {
       name,
       description,
+      category,
       sources,
       questionPrompt,
       resolutionPrompt,
+      baseModel,
       frequency,
       status: 'active',
       questionsCreated: 0,
@@ -170,6 +174,21 @@ export function AddAgentModal({
               placeholder="What does this agent do?"
               className="mt-2 min-h-[80px]"
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Input
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g., Cryptocurrency, Technology, Finance"
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Questions created by this agent will inherit this category
+            </p>
           </div>
 
           {/* Sources */}
@@ -293,6 +312,26 @@ export function AddAgentModal({
               placeholder="e.g., Answer the question by researching the web and finding the answer."
               className="mt-2 min-h-[100px]"
             />
+          </div>
+
+          {/* Base Model */}
+          <div>
+            <Label htmlFor="baseModel">AI Model *</Label>
+            <Select value={baseModel} onValueChange={setBaseModel}>
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="chatgpt-4o-latest">ChatGPT 4o (Latest)</SelectItem>
+                <SelectItem value="chatgpt-4o">ChatGPT 4o</SelectItem>
+                <SelectItem value="chatgpt-4-turbo">ChatGPT 4 Turbo</SelectItem>
+                <SelectItem value="gpt-4">GPT-4</SelectItem>
+                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
+                <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Frequency */}
