@@ -10,7 +10,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Agent, ProposedQuestion, AgentSourceType } from "../../lib/types";
-import { mockQuestions } from "../../lib/mock-data";
+import { questionsApi } from "../../lib/supabase";
 import { formatDateTime, cn } from "../../lib/utils";
 import {
   Globe,
@@ -53,11 +53,23 @@ export function AgentDetailsModal({
   const [generatedQuestions, setGeneratedQuestions] = useState<ProposedQuestion[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
+  // Load questions from database
+  const loadQuestions = async () => {
+    if (!agent) return;
+
+    try {
+      const questions = await questionsApi.getQuestionsByAgent(agent.id);
+      // Filter for pending questions (AI suggestions)
+      const pendingQuestions = questions.filter(q => q.state === 'pending');
+      setGeneratedQuestions(pendingQuestions);
+    } catch (error) {
+      console.error('Error loading questions:', error);
+    }
+  };
+
   useEffect(() => {
     if (agent && open) {
-      // Filter questions by this specific agent
-      const agentQuestions = mockQuestions.filter(q => q.agentId === agent.id && q.state === 'pending');
-      setGeneratedQuestions(agentQuestions);
+      loadQuestions();
     }
   }, [agent, open]);
 
@@ -110,12 +122,12 @@ export function AgentDetailsModal({
         throw new Error('No question was generated');
       }
 
-      // Add new question to the beginning of the list
-      setGeneratedQuestions(prev => [result.question!, ...prev]);
+      // Reload questions from database to show the newly generated question
+      await loadQuestions();
 
       setIsRunning(false);
       onRunAgent?.(agent.id);
-      toast.success("New question generated successfully!");
+      toast.success("New question generated and saved to database!");
 
     } catch (error) {
       console.error('Error generating question:', error);
@@ -169,14 +181,15 @@ export function AgentDetailsModal({
                 >
                   {agent.status}
                 </Badge>
-                {agent.category && (
+                {agent.categories.map((category, idx) => (
                   <Badge
+                    key={idx}
                     variant="outline"
-                    className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                    className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
                   >
-                    {agent.category}
+                    {category}
                   </Badge>
-                )}
+                ))}
               </DialogTitle>
               <DialogDescription className="text-base mt-2">
                 {agent.description}

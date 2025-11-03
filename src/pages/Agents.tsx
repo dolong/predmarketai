@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/shared/PageHeader";
 import { Button } from "../components/ui/button";
@@ -35,21 +35,41 @@ import {
   Twitter,
   FileJson,
   Sparkles,
+  Loader2,
 } from "lucide-react";
-import { mockAgents } from "../lib/mock-data";
+import { agentsApi } from "../lib/supabase";
 import { Agent, AgentSource, AgentSourceType } from "../lib/types";
 import { formatDateTime } from "../lib/utils";
 import { toast } from "sonner@2.0.3";
 
 export function Agents() {
   const navigate = useNavigate();
-  const [agents, setAgents] = useState<Agent[]>(mockAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [addAgentOpen, setAddAgentOpen] = useState(false);
   const [editAgentOpen, setEditAgentOpen] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Agent | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+
+  // Load agents from database on mount
+  useEffect(() => {
+    loadAgents();
+  }, []);
+
+  const loadAgents = async () => {
+    setLoading(true);
+    try {
+      const data = await agentsApi.getAgents();
+      setAgents(data);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+      toast.error('Failed to load agents');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAgents = agents.filter(agent =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -64,7 +84,7 @@ export function Agents() {
       id: `agent${agents.length + 1}`,
       name: agent.name!,
       description: agent.description || "",
-      category: agent.category,
+      categories: agent.categories || [],
       sources: agent.sources!,
       questionPrompt: agent.questionPrompt!,
       resolutionPrompt: agent.resolutionPrompt!,
@@ -196,10 +216,14 @@ export function Agents() {
                 </CardTitle>
                 <CardDescription>
                   {template.description}
-                  {template.category && (
-                    <Badge variant="outline" className="mt-2 mr-2">
-                      {template.category}
-                    </Badge>
+                  {template.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {template.categories.map((category, idx) => (
+                        <Badge key={idx} variant="outline">
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </CardDescription>
               </CardHeader>
@@ -269,7 +293,14 @@ export function Agents() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customAgents.length === 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                    <p className="text-muted-foreground">Loading agents...</p>
+                  </TableCell>
+                </TableRow>
+              ) : customAgents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No custom agents yet. Create one using a template or start from scratch.
@@ -289,10 +320,14 @@ export function Agents() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {agent.category ? (
-                        <Badge variant="outline">
-                          {agent.category}
-                        </Badge>
+                      {agent.categories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {agent.categories.map((category, idx) => (
+                            <Badge key={idx} variant="outline">
+                              {category}
+                            </Badge>
+                          ))}
+                        </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">-</span>
                       )}

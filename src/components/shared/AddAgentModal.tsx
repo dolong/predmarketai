@@ -38,13 +38,14 @@ export function AddAgentModal({
 }: AddAgentModalProps) {
   const [name, setName] = useState(templateAgent?.name || "");
   const [description, setDescription] = useState(templateAgent?.description || "");
-  const [category, setCategory] = useState(templateAgent?.category || "");
+  const [categories, setCategories] = useState<string[]>(templateAgent?.categories || []);
+  const [newCategory, setNewCategory] = useState("");
   const [sources, setSources] = useState<AgentSource[]>(templateAgent?.sources || []);
   const [questionPrompt, setQuestionPrompt] = useState(templateAgent?.questionPrompt || "");
   const [resolutionPrompt, setResolutionPrompt] = useState(templateAgent?.resolutionPrompt || "");
   const [baseModel, setBaseModel] = useState(templateAgent?.baseModel || "chatgpt-4o-latest");
   const [frequency, setFrequency] = useState<AgentFrequency>(templateAgent?.frequency || "on_update");
-  
+
   const [newSourceType, setNewSourceType] = useState<AgentSourceType | "">("");
   const [newSourceConfig, setNewSourceConfig] = useState("");
 
@@ -83,6 +84,23 @@ export function AddAgentModal({
     setSources(sources.filter((_, i) => i !== index));
   };
 
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) {
+      toast.error("Please enter a category name");
+      return;
+    }
+    if (categories.includes(newCategory.trim())) {
+      toast.error("Category already added");
+      return;
+    }
+    setCategories([...categories, newCategory.trim()]);
+    setNewCategory("");
+  };
+
+  const handleRemoveCategory = (categoryToRemove: string) => {
+    setCategories(categories.filter(cat => cat !== categoryToRemove));
+  };
+
   const handleSave = () => {
     if (!name || !questionPrompt || !resolutionPrompt || sources.length === 0) {
       toast.error("Please fill in all required fields");
@@ -92,7 +110,7 @@ export function AddAgentModal({
     const agent: Partial<Agent> = {
       name,
       description,
-      category,
+      categories,
       sources,
       questionPrompt,
       resolutionPrompt,
@@ -176,19 +194,44 @@ export function AddAgentModal({
             />
           </div>
 
-          {/* Category */}
+          {/* Categories */}
           <div>
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g., Cryptocurrency, Technology, Finance"
-              className="mt-2"
-            />
+            <Label>Categories</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCategory();
+                  }
+                }}
+                placeholder="e.g., Cryptocurrency, Technology, Finance"
+              />
+              <Button type="button" onClick={handleAddCategory} size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Questions created by this agent will inherit this category
+              Questions created by this agent will inherit these categories
             </p>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {categories.map((cat, idx) => (
+                  <Badge key={idx} variant="secondary" className="gap-1">
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(cat)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Sources */}

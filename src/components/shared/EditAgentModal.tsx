@@ -38,7 +38,8 @@ export function EditAgentModal({
 }: EditAgentModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
   const [sources, setSources] = useState<AgentSource[]>([]);
   const [questionPrompt, setQuestionPrompt] = useState("");
   const [resolutionPrompt, setResolutionPrompt] = useState("");
@@ -53,7 +54,7 @@ export function EditAgentModal({
     if (agent) {
       setName(agent.name || "");
       setDescription(agent.description || "");
-      setCategory(agent.category || "");
+      setCategories(agent.categories || []);
       setSources(agent.sources || []);
       setQuestionPrompt(agent.questionPrompt || "");
       setResolutionPrompt(agent.resolutionPrompt || "");
@@ -105,6 +106,23 @@ export function EditAgentModal({
     setSources(sources.filter((_, i) => i !== index));
   };
 
+  const handleAddCategory = () => {
+    if (!newCategory.trim()) {
+      toast.error("Please enter a category name");
+      return;
+    }
+    if (categories.includes(newCategory.trim())) {
+      toast.error("Category already added");
+      return;
+    }
+    setCategories([...categories, newCategory.trim()]);
+    setNewCategory("");
+  };
+
+  const handleRemoveCategory = (categoryToRemove: string) => {
+    setCategories(categories.filter(cat => cat !== categoryToRemove));
+  };
+
   const handleSave = () => {
     if (!agent) return;
 
@@ -117,7 +135,7 @@ export function EditAgentModal({
       ...agent,
       name,
       description,
-      category,
+      categories,
       sources,
       questionPrompt,
       resolutionPrompt,
@@ -200,19 +218,44 @@ export function EditAgentModal({
             />
           </div>
 
-          {/* Category */}
+          {/* Categories */}
           <div>
-            <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="e.g., Cryptocurrency, Technology, Finance"
-              className="mt-2"
-            />
+            <Label>Categories</Label>
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCategory();
+                  }
+                }}
+                placeholder="e.g., Cryptocurrency, Technology, Finance"
+              />
+              <Button type="button" onClick={handleAddCategory} size="icon">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Questions created by this agent will inherit this category
+              Questions created by this agent will inherit these categories
             </p>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {categories.map((cat, idx) => (
+                  <Badge key={idx} variant="secondary" className="gap-1">
+                    {cat}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCategory(cat)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Sources */}

@@ -110,7 +110,7 @@ export interface Agent {
   id: string;
   name: string;
   description: string;
-  category?: string;
+  categories: string[];
   sources: AgentSource[];
   questionPrompt: string;
   resolutionPrompt: string;

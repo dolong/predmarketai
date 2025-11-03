@@ -1,14 +1,13 @@
 // Prisma schema for Predictive Markets Dashboard
-// Compatible with PlanetScale MySQL
+// Compatible with Supabase PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider     = "mysql"
-  url          = env("DATABASE_URL")
-  relationMode = "prisma" // Required for PlanetScale
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -133,7 +132,7 @@ model Agent {
   id               String          @id @default(cuid())
   name             String
   description      String?         @db.Text
-  category         String?         @db.VarChar(100)
+  categories       String[]        @default([])
   questionPrompt   String          @map("question_prompt") @db.Text
   resolutionPrompt String          @map("resolution_prompt") @db.Text
   baseModel        String          @default("chatgpt-4o-latest") @map("base_model") @db.VarChar(100)

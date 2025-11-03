@@ -1,5 +1,5 @@
 import { Agent, ProposedQuestion } from '../lib/types';
-import { proposedQuestionsApi } from './questions';
+import { questionsApi } from '../lib/supabase';
 
 /**
  * Agent Runner Service
@@ -139,16 +139,23 @@ export class AgentRunner {
         type: data.type || 'binary',
       };
 
-      console.log(`[AgentRunner] Created proposed question with ID: ${proposedQuestion.id}`);
+      console.log(`[AgentRunner] Saving question to database...`);
 
-      // In a real backend, this would save to database
-      // For now, we'll just return the question
-      // Uncomment this when database is ready:
-      // await proposedQuestionsApi.createProposedQuestion(proposedQuestion);
+      // Save question to database
+      const savedQuestion = await questionsApi.createQuestion(proposedQuestion);
+
+      if (!savedQuestion) {
+        return {
+          success: false,
+          error: 'Failed to save question to database'
+        };
+      }
+
+      console.log(`[AgentRunner] Successfully saved question with ID: ${savedQuestion.id}`);
 
       return {
         success: true,
-        question: proposedQuestion
+        question: savedQuestion
       };
 
     } catch (error) {

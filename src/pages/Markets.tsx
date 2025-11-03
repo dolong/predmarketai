@@ -23,9 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2 } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
-import { mockQuestions, mockAgents } from "../lib/mock-data";
+import { questionsApi, agentsApi } from "../lib/supabase";
 import { ProposedQuestion, Agent } from "../lib/types";
 import { formatDate, formatDateTime } from "../lib/utils";
 import { EmptyState } from "../components/shared/EmptyState";
@@ -34,7 +34,9 @@ import { toast } from "sonner@2.0.3";
 
 export function Markets() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [questions, setQuestions] = useState<ProposedQuestion[]>(mockQuestions);
+  const [questions, setQuestions] = useState<ProposedQuestion[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -62,23 +64,47 @@ export function Markets() {
     multiOption: true,
   });
 
-  // Initialize state from URL params on mount
+  // Load data from database on mount
   useEffect(() => {
-    const agentSearch = searchParams.get('agent');
-    const tab = searchParams.get('tab');
-
-    if (agentSearch) {
-      setSearchTerm(agentSearch);
-    }
-
-    if (tab === 'suggestions') {
-      setActiveTab('suggestions');
-    }
+    loadData();
   }, []);
+
+  // Initialize state from URL params after data loads
+  useEffect(() => {
+    if (!loading) {
+      const agentSearch = searchParams.get('agent');
+      const tab = searchParams.get('tab');
+
+      if (agentSearch) {
+        setSearchTerm(agentSearch);
+      }
+
+      if (tab === 'suggestions') {
+        setActiveTab('suggestions');
+      }
+    }
+  }, [loading, searchParams]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [questionsData, agentsData] = await Promise.all([
+        questionsApi.getQuestions(),
+        agentsApi.getAgents(),
+      ]);
+      setQuestions(questionsData);
+      setAgents(agentsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Helper function to get agent name from a proposal
   const getAgentName = (proposal: ProposedQuestion): string => {
-    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    const agent = agents.find(a => a.id === proposal.agentId);
     return agent?.name || 'Unknown Agent';
   };
 
@@ -101,7 +127,7 @@ export function Markets() {
       agentName.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Category filter - check agent's category
-    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    const agent = agents.find(a => a.id === proposal.agentId);
     const agentCategory = agent?.category;
     const matchesCategory = !agentCategory || categoryFilters[agentCategory as keyof typeof categoryFilters];
 
@@ -649,14 +675,19 @@ export function Markets() {
                             </TableCell>
                             <TableCell>
                               {(() => {
-                                const agent = mockAgents.find(a => a.id === proposal.agentId);
-                                return agent?.category ? (
-                                  <Badge
-                                    variant="outline"
-                                    className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                                  >
-                                    {agent.category}
-                                  </Badge>
+                                const agent = agents.find(a => a.id === proposal.agentId);
+                                return agent?.categories && agent.categories.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {agent.categories.map((category, idx) => (
+                                      <Badge
+                                        key={idx}
+                                        variant="outline"
+                                        className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                      >
+                                        {category}
+                                      </Badge>
+                                    ))}
+                                  </div>
                                 ) : (
                                   <span className="text-sm text-muted-foreground">-</span>
                                 );
@@ -764,14 +795,19 @@ export function Markets() {
                               </TableCell>
                               <TableCell>
                                 {(() => {
-                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
-                                  return agent?.category ? (
-                                    <Badge
-                                      variant="outline"
-                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                                    >
-                                      {agent.category}
-                                    </Badge>
+                                  const agent = agents.find(a => a.id === proposal.agentId);
+                                  return agent?.categories && agent.categories.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {agent.categories.map((category, idx) => (
+                                        <Badge
+                                          key={idx}
+                                          variant="outline"
+                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                        >
+                                          {category}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
                                   );
@@ -894,14 +930,19 @@ export function Markets() {
                               </TableCell>
                               <TableCell>
                                 {(() => {
-                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
-                                  return agent?.category ? (
-                                    <Badge
-                                      variant="outline"
-                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                                    >
-                                      {agent.category}
-                                    </Badge>
+                                  const agent = agents.find(a => a.id === proposal.agentId);
+                                  return agent?.categories && agent.categories.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {agent.categories.map((category, idx) => (
+                                        <Badge
+                                          key={idx}
+                                          variant="outline"
+                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                        >
+                                          {category}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
                                   );
@@ -1046,14 +1087,19 @@ export function Markets() {
                               </TableCell>
                               <TableCell>
                                 {(() => {
-                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
-                                  return agent?.category ? (
-                                    <Badge
-                                      variant="outline"
-                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                                    >
-                                      {agent.category}
-                                    </Badge>
+                                  const agent = agents.find(a => a.id === proposal.agentId);
+                                  return agent?.categories && agent.categories.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {agent.categories.map((category, idx) => (
+                                        <Badge
+                                          key={idx}
+                                          variant="outline"
+                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                        >
+                                          {category}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
                                   );
@@ -1198,14 +1244,19 @@ export function Markets() {
                               </TableCell>
                               <TableCell>
                                 {(() => {
-                                  const agent = mockAgents.find(a => a.id === proposal.agentId);
-                                  return agent?.category ? (
-                                    <Badge
-                                      variant="outline"
-                                      className={categoryColors[agent.category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                                    >
-                                      {agent.category}
-                                    </Badge>
+                                  const agent = agents.find(a => a.id === proposal.agentId);
+                                  return agent?.categories && agent.categories.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      {agent.categories.map((category, idx) => (
+                                        <Badge
+                                          key={idx}
+                                          variant="outline"
+                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                        >
+                                          {category}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   ) : (
                                     <span className="text-sm text-muted-foreground">-</span>
                                   );
