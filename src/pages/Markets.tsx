@@ -322,7 +322,7 @@ export function Markets() {
               {topSuggestions.map((suggestion, index) => (
                 <Card
                   key={suggestion.id}
-                  className="min-w-[340px] group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
+                  className="min-w-[340px] max-w-[340px] h-[280px] flex flex-col group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
                   onClick={() => handleEditDetails(suggestion)}
                 >
                   {/* Gradient background */}
@@ -335,7 +335,7 @@ export function Markets() {
                     'from-indigo-500/10 to-blue-500/10'
                   } opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                  <CardHeader className="relative pb-3">
+                  <CardHeader className="relative pb-3 flex-shrink-0">
                     <div className="flex items-center justify-between mb-2">
                       <Badge className="bg-primary/10 text-primary border-primary/20">
                         AI Score: {(suggestion.aiScore * 100).toFixed(0)}%
@@ -350,7 +350,7 @@ export function Markets() {
                       {suggestion.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="relative space-y-3 pt-0">
+                  <CardContent className="relative space-y-3 pt-0 flex-1 flex flex-col justify-between">
                     {/* Description - truncated */}
                     <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
                       {suggestion.description}
