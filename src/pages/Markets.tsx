@@ -43,7 +43,8 @@ export function Markets() {
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<ProposedQuestion | null>(null);
   const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "live" | "paused" | "deleted">("queued");
-  
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilters, setCategoryFilters] = useState({
@@ -322,7 +323,8 @@ export function Markets() {
               {topSuggestions.map((suggestion, index) => (
                 <Card
                   key={suggestion.id}
-                  className="min-w-[340px] max-w-[340px] h-[280px] flex flex-col group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
+                  className="w-[340px] h-[280px] shrink-0 flex flex-col group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden box-border"
+                  style={{ maxWidth: '340px' }}
                   onClick={() => handleEditDetails(suggestion)}
                 >
                   {/* Gradient background */}
@@ -335,8 +337,8 @@ export function Markets() {
                     'from-indigo-500/10 to-blue-500/10'
                   } opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                  <CardHeader className="relative pb-3 flex-shrink-0">
-                    <div className="flex items-center justify-between mb-2">
+                  <CardHeader className="relative pb-3 flex-shrink-0 min-w-0">
+                    <div className="flex items-center justify-between mb-2 min-w-0">
                       <Badge className="bg-primary/10 text-primary border-primary/20">
                         AI Score: {(suggestion.aiScore * 100).toFixed(0)}%
                       </Badge>
@@ -350,40 +352,42 @@ export function Markets() {
                       {suggestion.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="relative space-y-3 pt-0 flex-1 flex flex-col justify-between">
+                  <CardContent className="relative space-y-3 pt-0 flex-1 flex flex-col justify-between overflow-hidden min-w-0">
                     {/* Description - truncated */}
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                      {suggestion.description}
-                    </p>
+                    <div className="space-y-3 w-full max-w-full overflow-hidden">
+                      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 break-all">
+                        {suggestion.description}
+                      </p>
 
-                    {/* Categories */}
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <Tag className="h-3 w-3 text-muted-foreground" />
-                      {suggestion.categories.slice(0, 2).map((category) => (
-                        <Badge
-                          key={category}
-                          variant="outline"
-                          className={`text-xs ${categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
-                        >
-                          {category}
-                        </Badge>
-                      ))}
-                      {suggestion.categories.length > 2 && (
-                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
-                          +{suggestion.categories.length - 2}
-                        </Badge>
-                      )}
+                      {/* Categories */}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <Tag className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        {suggestion.categories.slice(0, 2).map((category) => (
+                          <Badge
+                            key={category}
+                            variant="outline"
+                            className={`text-xs ${categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                          >
+                            {category}
+                          </Badge>
+                        ))}
+                        {suggestion.categories.length > 2 && (
+                          <Badge variant="outline" className="text-xs bg-gray-100 text-gray-700 border-gray-200">
+                            +{suggestion.categories.length - 2}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     {/* Meta info */}
                     <div className="flex items-center justify-between pt-1 border-t text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>Ends {suggestion.answerEndAt.toLocaleDateString()}</span>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">Ends {suggestion.answerEndAt.toLocaleDateString()}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" />
-                        <span>{getAgentName(suggestion)}</span>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Sparkles className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{getAgentName(suggestion)}</span>
                       </div>
                     </div>
                   </CardContent>
@@ -394,12 +398,42 @@ export function Markets() {
         </Card>
       )}
 
-      <div className="grid grid-cols-12 gap-6">
+      <div className="flex gap-6">
         {/* Left Filter Bar */}
-        <Card className="col-span-2">
-          <CardContent className="p-6 space-y-6">
+        <Card className={sidebarCollapsed ? "w-[50px]" : "w-[250px]"} style={{ flexShrink: 0 }}>
+          <CardContent className={sidebarCollapsed ? "p-2 flex items-center justify-center h-full" : "p-6 space-y-6"}>
+            {sidebarCollapsed ? (
+              <div className="flex flex-col items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarCollapsed(false)}
+                  title="Expand sidebar"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <div
+                  className="text-xs text-muted-foreground cursor-pointer"
+                  style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                  onClick={() => setSidebarCollapsed(false)}
+                >
+                  Search Filters
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
             <div>
-              <Label>Search Agents</Label>
+              <div className="flex items-center justify-between">
+                <Label>Search Agents</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSidebarCollapsed(true)}
+                  title="Collapse sidebar"
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90" />
+                </Button>
+              </div>
               <div className="relative mt-2">
                 <Input
                   placeholder="Search agents..."
@@ -605,11 +639,13 @@ export function Markets() {
                 </p>
               </div>
             </div>
+            </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Main Content */}
-        <div className="col-span-9">
+        <div className="flex-1">
           <Card>
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "suggestions" | "queued" | "live" | "paused" | "deleted")} className="w-full">
@@ -885,7 +921,6 @@ export function Markets() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-12"></TableHead>
                           <TableHead>Title</TableHead>
                           <TableHead>Agent</TableHead>
                           <TableHead>Categories</TableHead>
@@ -898,26 +933,8 @@ export function Markets() {
                       </TableHeader>
                       <TableBody>
                         {filteredProposals.map((proposal) => (
-                          <Fragment key={proposal.id}>
-                            <TableRow>
-                              <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    setExpandedRow(
-                                      expandedRow === proposal.id ? null : proposal.id
-                                    )
-                                  }
-                                >
-                                  {expandedRow === proposal.id ? (
-                                    <ChevronDown className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronRight className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TableCell>
-                              <TableCell>
+                          <TableRow key={proposal.id}>
+                            <TableCell>
                                 <p className="max-w-md">{proposal.title}</p>
                               </TableCell>
                               <TableCell>
@@ -990,40 +1007,6 @@ export function Markets() {
                                 </div>
                               </TableCell>
                             </TableRow>
-                            {expandedRow === proposal.id && (
-                              <TableRow>
-                                <TableCell colSpan={9} className="bg-muted/50">
-                                  <div className="p-4 space-y-4">
-                                    <div>
-                                      <h4 className="mb-2">Description</h4>
-                                      <p className="text-muted-foreground">
-                                        {proposal.description}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="mb-2">Resolution Criteria</h4>
-                                      <p className="text-muted-foreground">
-                                        {proposal.resolutionCriteria}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <h4 className="mb-2">AI Agent</h4>
-                                      <Badge variant="outline" className="border-primary/50 text-primary">
-                                        {getAgentName(proposal)}
-                                      </Badge>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        onClick={() => handleEditDetails(proposal)}
-                                      >
-                                        Edit Details
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </Fragment>
                         ))}
                       </TableBody>
                     </Table>
