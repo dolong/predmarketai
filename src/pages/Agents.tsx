@@ -79,24 +79,21 @@ export function Agents() {
   const templateAgents = agents.filter(a => a.isTemplate);
   const customAgents = filteredAgents.filter(a => !a.isTemplate);
 
-  const handleAddAgent = (agent: Partial<Agent>) => {
-    const newAgent: Agent = {
-      id: `agent${agents.length + 1}`,
-      name: agent.name!,
-      description: agent.description || "",
-      categories: agent.categories || [],
-      sources: agent.sources!,
-      questionPrompt: agent.questionPrompt!,
-      resolutionPrompt: agent.resolutionPrompt!,
-      baseModel: agent.baseModel || 'chatgpt-4o-latest',
-      frequency: agent.frequency!,
-      status: agent.status || 'active',
-      questionsCreated: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+  const handleAddAgent = async (agent: Partial<Agent>) => {
+    try {
+      const savedAgent = await agentsApi.createAgent(agent);
 
-    setAgents([...agents, newAgent]);
+      if (savedAgent) {
+        setAgents([...agents, savedAgent]);
+        toast.success("Agent created successfully!");
+        handleCloseModal();
+      } else {
+        toast.error("Failed to create agent");
+      }
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      toast.error("Failed to create agent");
+    }
   };
 
   const handleUseTemplate = (template: Agent) => {
@@ -119,8 +116,21 @@ export function Agents() {
     setSelectedAgent(null);
   };
 
-  const handleUpdateAgent = (updatedAgent: Agent) => {
-    setAgents(agents.map(a => a.id === updatedAgent.id ? updatedAgent : a));
+  const handleUpdateAgent = async (updatedAgent: Agent) => {
+    try {
+      const savedAgent = await agentsApi.updateAgent(updatedAgent.id, updatedAgent);
+
+      if (savedAgent) {
+        setAgents(agents.map(a => a.id === updatedAgent.id ? savedAgent : a));
+        toast.success("Agent updated successfully!");
+        handleCloseEditModal();
+      } else {
+        toast.error("Failed to update agent");
+      }
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      toast.error("Failed to update agent");
+    }
   };
 
   const handleRunAgent = (agentId: string) => {
@@ -132,16 +142,40 @@ export function Agents() {
     setDetailsModalOpen(true);
   };
 
-  const handlePauseAgent = (agentId: string) => {
-    setAgents(agents.map(a => 
-      a.id === agentId ? { ...a, status: a.status === 'paused' ? 'active' : 'paused' as const } : a
-    ));
-    toast.success("Agent status updated");
+  const handlePauseAgent = async (agentId: string) => {
+    try {
+      const agent = agents.find(a => a.id === agentId);
+      if (!agent) return;
+
+      const newStatus = agent.status === 'paused' ? 'active' : 'paused';
+      const updatedAgent = await agentsApi.updateAgent(agentId, { status: newStatus });
+
+      if (updatedAgent) {
+        setAgents(agents.map(a => a.id === agentId ? updatedAgent : a));
+        toast.success("Agent status updated");
+      } else {
+        toast.error("Failed to update agent status");
+      }
+    } catch (error) {
+      console.error('Error updating agent status:', error);
+      toast.error("Failed to update agent status");
+    }
   };
 
-  const handleDeleteAgent = (agentId: string) => {
-    setAgents(agents.filter(a => a.id !== agentId));
-    toast.success("Agent deleted");
+  const handleDeleteAgent = async (agentId: string) => {
+    try {
+      const success = await agentsApi.deleteAgent(agentId);
+
+      if (success) {
+        setAgents(agents.filter(a => a.id !== agentId));
+        toast.success("Agent deleted");
+      } else {
+        toast.error("Failed to delete agent");
+      }
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      toast.error("Failed to delete agent");
+    }
   };
 
   const handleNavigate = (page: string, params?: Record<string, string>) => {

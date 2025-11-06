@@ -11,7 +11,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Agent, ProposedQuestion, AgentSourceType } from "../../lib/types";
 import { questionsApi } from "../../lib/supabase";
-import { formatDateTime, cn } from "../../lib/utils";
+import { formatDateTime, cn, getCategoryColor } from "../../lib/utils";
 import {
   Globe,
   LinkIcon,
@@ -115,24 +115,26 @@ export function AgentDetailsModal({
       const result = await AgentRunner.runAgent(agent);
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to generate question');
+        throw new Error(result.error || 'Failed to generate questions');
       }
 
-      if (!result.question) {
-        throw new Error('No question was generated');
+      if (!result.questions || result.questions.length === 0) {
+        throw new Error('No questions were generated');
       }
 
-      // Reload questions from database to show the newly generated question
+      // Reload questions from database to show the newly generated questions
       await loadQuestions();
 
       setIsRunning(false);
       onRunAgent?.(agent.id);
-      toast.success("New question generated and saved to database!");
+
+      const count = result.questions.length;
+      toast.success(`${count} ${count === 1 ? 'question' : 'questions'} generated and saved to database!`);
 
     } catch (error) {
-      console.error('Error generating question:', error);
+      console.error('Error generating questions:', error);
       setIsRunning(false);
-      toast.error(error instanceof Error ? error.message : "Failed to generate question");
+      toast.error(error instanceof Error ? error.message : "Failed to generate questions");
     }
   };
 
@@ -152,14 +154,6 @@ export function AgentDetailsModal({
     }
   };
 
-  // Category color mapping
-  const categoryColors: Record<string, string> = {
-    'Cryptocurrency': 'bg-orange-100 text-orange-700 border-orange-200',
-    'Bitcoin': 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    'Finance': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Technology': 'bg-blue-100 text-blue-700 border-blue-200',
-    'AI': 'bg-purple-100 text-purple-700 border-purple-200',
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,7 +179,7 @@ export function AgentDetailsModal({
                   <Badge
                     key={idx}
                     variant="outline"
-                    className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                    className={getCategoryColor(category)}
                   >
                     {category}
                   </Badge>
@@ -341,7 +335,7 @@ export function AgentDetailsModal({
                               <Badge
                                 key={category}
                                 variant="outline"
-                                className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                className={getCategoryColor(category)}
                               >
                                 {category}
                               </Badge>

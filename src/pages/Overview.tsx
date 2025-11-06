@@ -1,6 +1,5 @@
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { mockQuestions, mockAgents } from "../lib/mock-data";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
 import {
@@ -11,12 +10,13 @@ import {
   Clock,
   Users,
   Brain,
-  Tag,
   Search,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Tag
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { questionsApi, agentsApi } from "../lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "../components/ui/popover";
-import { cn } from "../lib/utils";
+import { cn, getCategoryColor } from "../lib/utils";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
 import { EditQuestionDetailsModal } from "../components/shared/EditQuestionDetailsModal";
 import { ProposedQuestion, Question, Agent } from "../lib/types";
@@ -40,12 +40,49 @@ import { ProposedQuestion, Question, Agent } from "../lib/types";
 export function Overview() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load data from database
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [questionsData, agentsData] = await Promise.all([
+        questionsApi.getQuestions(),
+        agentsApi.getAgents()
+      ]);
+      setQuestions(questionsData);
+      setAgents(agentsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Helper function to get agent name from a proposal
   const getAgentName = (proposal: ProposedQuestion): string => {
-    const agent = mockAgents.find(a => a.id === proposal.agentId);
+    const agent = agents.find(a => a.id === proposal.agentId);
     return agent?.name || 'Unknown Agent';
   };
+
+  // Helper function to get gradient class for suggestion cards
+  const getGradientClass = (index: number): string => {
+    const gradients = [
+      'from-violet-500/10 to-purple-500/10',
+      'from-blue-500/10 to-cyan-500/10',
+      'from-pink-500/10 to-rose-500/10',
+      'from-emerald-500/10 to-teal-500/10',
+      'from-orange-500/10 to-amber-500/10'
+    ];
+    return gradients[index % gradients.length];
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [questionInput, setQuestionInput] = useState("");
   const [expiryDate, setExpiryDate] = useState<Date>();
@@ -104,26 +141,22 @@ export function Overview() {
     navigate('/markets');
   };
 
-  // Get trending AI suggestions (highest scores)
-  const trendingSuggestions = [...mockQuestions.filter(q => q.state === 'pending')]
-    .sort((a, b) => b.aiScore - a.aiScore)
+  // Get trending AI suggestions (highest scores from pending questions)
+  const trendingSuggestions = [...questions.filter(q => q.state === 'pending' && q.aiScore)]
+    .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 5);
 
+  // Calculate stats from real data
+  const pendingCount = questions.filter(q => q.state === 'pending').length;
+  const publishedCount = questions.filter(q => q.state === 'published').length;
+  const totalParticipants = questions.reduce((sum, q) => sum + (q.answerCount || 0), 0);
+
   const stats = [
-    { label: 'Active Questions', value: '23', icon: Zap, trend: '+5 this week' },
-    { label: 'Total Participants', value: '1,247', icon: Users, trend: '+12% this month' },
-    { label: 'AI Suggestions', value: mockQuestions.filter(q => q.state === 'pending').length.toString(), icon: Brain, trend: '+3 today' },
+    { label: 'Active Questions', value: publishedCount.toString(), icon: Zap, trend: `${questions.length} total` },
+    { label: 'Total Participants', value: totalParticipants.toString(), icon: Users, trend: `${agents.length} agents` },
+    { label: 'AI Suggestions', value: pendingCount.toString(), icon: Brain, trend: 'Ready for review' },
   ];
 
-  // Category color mapping
-  const categoryColors: Record<string, string> = {
-    'Technology': 'bg-blue-100 text-blue-700 border-blue-200',
-    'AI': 'bg-purple-100 text-purple-700 border-purple-200',
-    'Cryptocurrency': 'bg-orange-100 text-orange-700 border-orange-200',
-    'Finance': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Markets': 'bg-teal-100 text-teal-700 border-teal-200',
-    'Apple': 'bg-slate-100 text-slate-700 border-slate-200',
-  };
 
   return (
     <div className="space-y-8 pb-8">
@@ -181,26 +214,38 @@ export function Overview() {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {trendingSuggestions.map((suggestion, index) => (
+        {loading ? (
+          <div className="text-center py-12">
+            <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+            <p className="text-muted-foreground">Loading AI suggestions...</p>
+          </div>
+        ) : trendingSuggestions.length === 0 ? (
+          <Card className="p-12 text-center border-2 border-dashed">
+            <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No AI Suggestions Yet</h3>
+            <p className="text-muted-foreground mb-4">
+              Create an agent and run it to generate questions
+            </p>
+            <Button onClick={() => navigate('/agents')}>
+              Go to AI Agents
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {trendingSuggestions.map((suggestion, index) => (
             <Card 
               key={suggestion.id} 
               className="group hover:shadow-lg transition-all cursor-pointer border-2 hover:border-primary/50 relative overflow-hidden"
               onClick={() => handleViewDetails(suggestion)}
             >
               {/* Gradient background */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${
-                index === 0 ? 'from-violet-500/10 to-purple-500/10' :
-                index === 1 ? 'from-blue-500/10 to-cyan-500/10' :
-                index === 2 ? 'from-pink-500/10 to-rose-500/10' :
-                index === 3 ? 'from-emerald-500/10 to-teal-500/10' :
-                'from-orange-500/10 to-amber-500/10'
-              } opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <div className={`absolute inset-0 bg-gradient-to-br ${getGradientClass(index)} opacity-0 group-hover:opacity-100 transition-opacity`} />
               
               <CardHeader className="relative">
                 <div className="flex items-center justify-between mb-3">
                   <Badge className="bg-primary/10 text-primary border-primary/20">
-                    AI Score: {(suggestion.aiScore * 100).toFixed(0)}%
+                    AI Score: {((suggestion.aiScore || 0) * 100).toFixed(0)}%
                   </Badge>
                   {index === 0 && (
                     <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">
@@ -219,18 +264,20 @@ export function Overview() {
                 </p>
                 
                 {/* Categories */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                  {suggestion.categories.map((category) => (
-                    <Badge 
-                      key={category} 
-                      variant="outline"
-                      className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
-                    >
-                      {category}
-                    </Badge>
-                  ))}
-                </div>
+                {suggestion.categories && suggestion.categories.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                    {suggestion.categories.map((category) => (
+                      <Badge
+                        key={category}
+                        variant="outline"
+                        className={getCategoryColor(category)}
+                      >
+                        {category}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
 
                 {/* Meta info */}
                 <div className="flex items-center justify-between pt-2 border-t">
@@ -248,7 +295,8 @@ export function Overview() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

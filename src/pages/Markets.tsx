@@ -23,11 +23,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
-import { Sparkles, Check, X, ChevronDown, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2 } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronLeft, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2 } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
 import { questionsApi, agentsApi } from "../lib/supabase";
 import { ProposedQuestion, Agent } from "../lib/types";
-import { formatDate, formatDateTime } from "../lib/utils";
+import { formatDate, formatDateTime, getCategoryColor } from "../lib/utils";
 import { EmptyState } from "../components/shared/EmptyState";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
 import { toast } from "sonner@2.0.3";
@@ -194,13 +194,28 @@ export function Markets() {
     }
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     const question = questions.find((p) => p.id === id);
     if (question) {
-      toast.success("Question rejected");
-      setQuestions(questions.map(q =>
-        q.id === id ? { ...q, state: 'rejected' as const, updatedAt: new Date() } : q
-      ));
+      const updatedQuestion = await questionsApi.updateQuestionState(id, 'rejected');
+      if (updatedQuestion) {
+        toast.success("Question moved to deleted");
+        setQuestions(questions.map(q =>
+          q.id === id ? updatedQuestion : q
+        ));
+      } else {
+        toast.error("Failed to delete question");
+      }
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    const success = await questionsApi.deleteQuestion(id);
+    if (success) {
+      toast.success("Question permanently deleted");
+      setQuestions(questions.filter(q => q.id !== id));
+    } else {
+      toast.error("Failed to permanently delete question");
     }
   };
 
@@ -272,15 +287,6 @@ export function Markets() {
     .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 6);
 
-  // Category color mapping
-  const categoryColors: Record<string, string> = {
-    'Technology': 'bg-blue-100 text-blue-700 border-blue-200',
-    'AI': 'bg-purple-100 text-purple-700 border-purple-200',
-    'Cryptocurrency': 'bg-orange-100 text-orange-700 border-orange-200',
-    'Finance': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    'Markets': 'bg-teal-100 text-teal-700 border-teal-200',
-    'Apple': 'bg-slate-100 text-slate-700 border-slate-200',
-  };
 
   return (
     <div>
@@ -366,7 +372,7 @@ export function Markets() {
                           <Badge
                             key={category}
                             variant="outline"
-                            className={`text-xs ${categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                            className={`text-xs ${getCategoryColor(category)}`}
                           >
                             {category}
                           </Badge>
@@ -431,7 +437,7 @@ export function Markets() {
                   onClick={() => setSidebarCollapsed(true)}
                   title="Collapse sidebar"
                 >
-                  <ChevronDown className="h-4 w-4 rotate-90" />
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
               <div className="relative mt-2">
@@ -718,7 +724,7 @@ export function Markets() {
                                       <Badge
                                         key={idx}
                                         variant="outline"
-                                        className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                        className={getCategoryColor(category)}
                                       >
                                         {category}
                                       </Badge>
@@ -838,7 +844,7 @@ export function Markets() {
                                         <Badge
                                           key={idx}
                                           variant="outline"
-                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                          className={getCategoryColor(category)}
                                         >
                                           {category}
                                         </Badge>
@@ -954,7 +960,7 @@ export function Markets() {
                                         <Badge
                                           key={idx}
                                           variant="outline"
-                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                          className={getCategoryColor(category)}
                                         >
                                           {category}
                                         </Badge>
@@ -1077,7 +1083,7 @@ export function Markets() {
                                         <Badge
                                           key={idx}
                                           variant="outline"
-                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                          className={getCategoryColor(category)}
                                         >
                                           {category}
                                         </Badge>
@@ -1190,7 +1196,7 @@ export function Markets() {
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead className="w-32">Actions</TableHead>
+                          <TableHead className="w-48">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1234,7 +1240,7 @@ export function Markets() {
                                         <Badge
                                           key={idx}
                                           variant="outline"
-                                          className={categoryColors[category] || 'bg-gray-100 text-gray-700 border-gray-200'}
+                                          className={getCategoryColor(category)}
                                         >
                                           {category}
                                         </Badge>
@@ -1256,13 +1262,26 @@ export function Markets() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditDetails(proposal)}
-                                >
-                                  Edit Details
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditDetails(proposal)}
+                                    title="Edit Details"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handlePermanentDelete(proposal.id)}
+                                    title="Permanently Delete"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                             {expandedRow === proposal.id && (

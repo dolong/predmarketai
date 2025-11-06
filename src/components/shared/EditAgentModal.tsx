@@ -48,6 +48,7 @@ export function EditAgentModal({
 
   const [newSourceType, setNewSourceType] = useState<AgentSourceType | "">("");
   const [newSourceConfig, setNewSourceConfig] = useState("");
+  const [redditApiEndpoint, setRedditApiEndpoint] = useState("https://theanomaly.app.n8n.cloud/webhook/subreddit");
 
   // Pre-populate form fields when agent changes
   useEffect(() => {
@@ -91,6 +92,7 @@ export function EditAgentModal({
         break;
       case 'reddit':
         config.subreddit = newSourceConfig;
+        config.apiEndpoint = redditApiEndpoint;
         break;
       case 'feed':
         config.feedUrl = newSourceConfig;
@@ -333,7 +335,12 @@ export function EditAgentModal({
                 <Input
                   value={newSourceConfig}
                   onChange={(e) => setNewSourceConfig(e.target.value)}
-                  onBlur={handleAddSource}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSource();
+                    }
+                  }}
                   placeholder={
                     newSourceType === "website"
                       ? "https://example.com"
@@ -342,7 +349,7 @@ export function EditAgentModal({
                       : newSourceType === "x"
                       ? "https://x.com/username"
                       : newSourceType === "reddit"
-                      ? "Subreddit name (without r/)"
+                      ? "Subreddit name (e.g., politics)"
                       : newSourceType === "feed"
                       ? "https://feed.example.com/data.json"
                       : "Configure source..."
@@ -354,6 +361,25 @@ export function EditAgentModal({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Reddit API Endpoint Configuration */}
+              {newSourceType === "reddit" && (
+                <div className="mt-2">
+                  <Label htmlFor="reddit-api" className="text-xs text-muted-foreground">
+                    Reddit API Endpoint
+                  </Label>
+                  <Input
+                    id="reddit-api"
+                    value={redditApiEndpoint}
+                    onChange={(e) => setRedditApiEndpoint(e.target.value)}
+                    placeholder="https://theanomaly.app.n8n.cloud/webhook/subreddit"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    The API endpoint that accepts the subreddit as a query parameter
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

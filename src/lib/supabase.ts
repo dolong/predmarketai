@@ -52,7 +52,7 @@ function convertDbQuestion(dbQuestion: any): Question {
     outcome: dbQuestion.outcome,
     aiScore: dbQuestion.ai_score ? parseFloat(dbQuestion.ai_score) : undefined,
     riskFlags: [],
-    categories: [],
+    categories: dbQuestion.categories || [],
     type: dbQuestion.type || 'binary',
     poolTotal: dbQuestion.pool_total ? parseFloat(dbQuestion.pool_total) : 0,
     poolYes: dbQuestion.pool_yes ? parseFloat(dbQuestion.pool_yes) : 0,
@@ -108,6 +108,152 @@ export const agentsApi = {
       return null;
     }
   },
+
+  async createAgent(agent: Partial<Agent>): Promise<Agent | null> {
+    try {
+      const agentId = agent.id || crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      // Insert agent
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .insert({
+          id: agentId,
+          name: agent.name,
+          description: agent.description || '',
+          categories: agent.categories || [],
+          question_prompt: agent.questionPrompt,
+          resolution_prompt: agent.resolutionPrompt,
+          base_model: agent.baseModel || 'chatgpt-4o-latest',
+          frequency: agent.frequency || 'on_update',
+          status: agent.status || 'active',
+          questions_created: 0,
+          created_at: now,
+          updated_at: now,
+        })
+        .select()
+        .single();
+
+      if (agentError) {
+        console.error('Error creating agent:', agentError);
+        return null;
+      }
+
+      // Insert agent sources
+      if (agent.sources && agent.sources.length > 0) {
+        const sourcesData = agent.sources.map(source => ({
+          agent_id: agentId,
+          type: source.type,
+          config_url: source.config.url,
+          config_subreddit: source.config.subreddit,
+          config_api_endpoint: source.config.apiEndpoint,
+          config_feed_url: source.config.feedUrl,
+          created_at: now,
+        }));
+
+        const { error: sourcesError } = await supabase
+          .from('agent_sources')
+          .insert(sourcesData);
+
+        if (sourcesError) {
+          console.error('Error creating agent sources:', sourcesError);
+          // Don't return null here - agent was created successfully
+        }
+      }
+
+      // Fetch the complete agent with sources
+      return await this.getAgent(agentId);
+    } catch (error) {
+      console.error('Error creating agent:', error);
+      return null;
+    }
+  },
+
+  async updateAgent(id: string, agent: Partial<Agent>): Promise<Agent | null> {
+    try {
+      const now = new Date().toISOString();
+
+      // Update agent
+      const { error: agentError } = await supabase
+        .from('agents')
+        .update({
+          name: agent.name,
+          description: agent.description,
+          categories: agent.categories,
+          question_prompt: agent.questionPrompt,
+          resolution_prompt: agent.resolutionPrompt,
+          base_model: agent.baseModel,
+          frequency: agent.frequency,
+          status: agent.status,
+          updated_at: now,
+        })
+        .eq('id', id);
+
+      if (agentError) {
+        console.error('Error updating agent:', agentError);
+        return null;
+      }
+
+      // Delete existing sources
+      await supabase
+        .from('agent_sources')
+        .delete()
+        .eq('agent_id', id);
+
+      // Insert new sources
+      if (agent.sources && agent.sources.length > 0) {
+        const sourcesData = agent.sources.map(source => ({
+          agent_id: id,
+          type: source.type,
+          config_url: source.config.url,
+          config_subreddit: source.config.subreddit,
+          config_api_endpoint: source.config.apiEndpoint,
+          config_feed_url: source.config.feedUrl,
+          created_at: now,
+        }));
+
+        const { error: sourcesError } = await supabase
+          .from('agent_sources')
+          .insert(sourcesData);
+
+        if (sourcesError) {
+          console.error('Error updating agent sources:', sourcesError);
+        }
+      }
+
+      // Fetch the complete agent with sources
+      return await this.getAgent(id);
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      return null;
+    }
+  },
+
+  async deleteAgent(id: string): Promise<boolean> {
+    try {
+      // Delete agent sources first (foreign key constraint)
+      await supabase
+        .from('agent_sources')
+        .delete()
+        .eq('agent_id', id);
+
+      // Delete agent
+      const { error } = await supabase
+        .from('agents')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting agent:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting agent:', error);
+      return false;
+    }
+  },
 };
 
 export const questionsApi = {
@@ -131,6 +277,7 @@ export const questionsApi = {
           agent_id: question.agentId,
           ai_score: question.aiScore,
           type: question.type || 'binary',
+          categories: question.categories || [],
           created_at: now,
           updated_at: now,
         })
@@ -205,6 +352,51 @@ export const questionsApi = {
     } catch (error) {
       console.error('Error fetching question:', error);
       return null;
+    }
+  },
+
+  async updateQuestionState(id: string, state: string): Promise<Question | null> {
+    try {
+      const now = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from('questions')
+        .update({
+          state: state,
+          updated_at: now,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating question state:', error);
+        return null;
+      }
+
+      return data ? convertDbQuestion(data) : null;
+    } catch (error) {
+      console.error('Error updating question state:', error);
+      return null;
+    }
+  },
+
+  async deleteQuestion(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting question:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      return false;
     }
   },
 };
