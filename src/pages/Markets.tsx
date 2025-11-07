@@ -23,6 +23,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "../components/ui/tooltip";
 import { Sparkles, Check, X, ChevronDown, ChevronLeft, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2 } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
 import { questionsApi, agentsApi } from "../lib/supabase";
@@ -286,6 +291,12 @@ export function Markets() {
     .filter(q => q.state === 'pending' && q.aiScore)
     .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 6);
+
+  // Helper function to truncate title for desktop
+  const truncateTitle = (title: string, maxLength: number = 75) => {
+    if (title.length <= maxLength) return title;
+    return title.substring(0, maxLength) + '...';
+  };
 
 
   return (
@@ -705,7 +716,14 @@ export function Markets() {
                         {filteredProposals.map((proposal) => (
                           <TableRow key={proposal.id}>
                             <TableCell>
-                              <p className="max-w-md">{proposal.title}</p>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="max-w-md cursor-help">{truncateTitle(proposal.title)}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-sm">{proposal.title}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </TableCell>
                             <TableCell>
                               <Badge
@@ -825,7 +843,14 @@ export function Markets() {
                                 </Button>
                               </TableCell>
                               <TableCell>
-                                <p className="max-w-md">{proposal.title}</p>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="max-w-md cursor-help">{truncateTitle(proposal.title)}</p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-sm">{proposal.title}</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <Badge
@@ -941,8 +966,15 @@ export function Markets() {
                         {filteredProposals.map((proposal) => (
                           <TableRow key={proposal.id}>
                             <TableCell>
-                                <p className="max-w-md">{proposal.title}</p>
-                              </TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="max-w-md cursor-help">{truncateTitle(proposal.title)}</p>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-sm">{proposal.title}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TableCell>
                               <TableCell>
                                 <Badge
                                   variant="outline"
@@ -1064,7 +1096,14 @@ export function Markets() {
                                 </Button>
                               </TableCell>
                               <TableCell>
-                                <p className="max-w-md">{proposal.title}</p>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="max-w-md cursor-help">{truncateTitle(proposal.title)}</p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-sm">{proposal.title}</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <Badge
@@ -1221,7 +1260,14 @@ export function Markets() {
                                 </Button>
                               </TableCell>
                               <TableCell>
-                                <p className="max-w-md">{proposal.title}</p>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <p className="max-w-md cursor-help">{truncateTitle(proposal.title)}</p>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-sm">{proposal.title}</p>
+                                  </TooltipContent>
+                                </Tooltip>
                               </TableCell>
                               <TableCell>
                                 <Badge
