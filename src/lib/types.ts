@@ -31,6 +31,7 @@ export interface Question {
   categories: string[];
   topic?: string;
   agentId: string;
+  pushedTo?: string[]; // Platforms where question is pushed (e.g., "Synapse Markets", "Vectra Markets")
 
   // AI Suggestion fields (for pending/approved/rejected states)
   aiScore?: number;

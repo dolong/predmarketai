@@ -49,6 +49,9 @@ export function Markets() {
   const [selectedQuestion, setSelectedQuestion] = useState<ProposedQuestion | null>(null);
   const [activeTab, setActiveTab] = useState<"suggestions" | "queued" | "live" | "paused" | "deleted">("queued");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [platformDialogOpen, setPlatformDialogOpen] = useState(false);
+  const [questionToApprove, setQuestionToApprove] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -190,13 +193,37 @@ export function Markets() {
   };
 
   const handleApprove = (id: string) => {
-    const question = questions.find((p) => p.id === id);
-    if (question) {
-      toast.success("Question approved and moved to queued");
-      setQuestions(questions.map(q =>
-        q.id === id ? { ...q, state: 'approved' as const, updatedAt: new Date() } : q
-      ));
+    setQuestionToApprove(id);
+    setSelectedPlatforms([]);
+    setPlatformDialogOpen(true);
+  };
+
+  const confirmApprove = async () => {
+    if (!questionToApprove || selectedPlatforms.length === 0) {
+      toast.error("Please select at least one platform");
+      return;
     }
+
+    const question = questions.find((p) => p.id === questionToApprove);
+    if (question) {
+      const updatedQuestion = await questionsApi.updateQuestion(questionToApprove, {
+        state: 'approved',
+        pushedTo: selectedPlatforms
+      });
+
+      if (updatedQuestion) {
+        toast.success(`Question approved and queued for ${selectedPlatforms.join(', ')}`);
+        setQuestions(questions.map(q =>
+          q.id === questionToApprove ? updatedQuestion : q
+        ));
+      } else {
+        toast.error("Failed to approve question");
+      }
+    }
+
+    setPlatformDialogOpen(false);
+    setQuestionToApprove(null);
+    setSelectedPlatforms([]);
   };
 
   const handleReject = async (id: string) => {
@@ -814,6 +841,7 @@ export function Markets() {
                           <TableHead>Title</TableHead>
                           <TableHead>Agent</TableHead>
                           <TableHead>Categories</TableHead>
+                          <TableHead>Platform</TableHead>
                           <TableHead>Live Date</TableHead>
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
@@ -879,6 +907,23 @@ export function Markets() {
                                     <span className="text-sm text-muted-foreground">-</span>
                                   );
                                 })()}
+                              </TableCell>
+                              <TableCell>
+                                {proposal.pushedTo && proposal.pushedTo.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {proposal.pushedTo.map((platform, idx) => (
+                                      <Badge
+                                        key={idx}
+                                        variant="outline"
+                                        className="bg-blue-50 text-blue-700 border-blue-200"
+                                      >
+                                        {platform}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">-</span>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.liveDate)}</TableCell>
                               <TableCell className="text-sm">{formatDateTime(proposal.answerEndAt)}</TableCell>
@@ -1411,6 +1456,68 @@ export function Markets() {
                   Generate
                 </>
               )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Platform Selection Dialog */}
+      <Dialog open={platformDialogOpen} onOpenChange={setPlatformDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Target Platforms</DialogTitle>
+            <DialogDescription>
+              Choose which market platforms this question should be pushed to when queued
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="synapse"
+                  checked={selectedPlatforms.includes("Synapse Markets")}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedPlatforms([...selectedPlatforms, "Synapse Markets"]);
+                    } else {
+                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "Synapse Markets"));
+                    }
+                  }}
+                />
+                <Label htmlFor="synapse" className="text-base font-normal cursor-pointer">
+                  Synapse Markets
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="vectra"
+                  checked={selectedPlatforms.includes("Vectra Markets")}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedPlatforms([...selectedPlatforms, "Vectra Markets"]);
+                    } else {
+                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "Vectra Markets"));
+                    }
+                  }}
+                />
+                <Label htmlFor="vectra" className="text-base font-normal cursor-pointer">
+                  Vectra Markets
+                </Label>
+              </div>
+            </div>
+            {selectedPlatforms.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Please select at least one platform
+              </p>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPlatformDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmApprove} disabled={selectedPlatforms.length === 0}>
+              <Check className="h-4 w-4 mr-2" />
+              Approve & Queue
             </Button>
           </div>
         </DialogContent>

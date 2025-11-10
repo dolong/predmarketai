@@ -48,6 +48,7 @@ function convertDbQuestion(dbQuestion: any): Question {
     settlementAt: new Date(dbQuestion.settlement_at),
     resolutionCriteria: dbQuestion.resolution_criteria,
     agentId: dbQuestion.agent_id,
+    pushedTo: dbQuestion.pushed_to || [],
     reviewStatus: dbQuestion.review_status,
     outcome: dbQuestion.outcome,
     aiScore: dbQuestion.ai_score ? parseFloat(dbQuestion.ai_score) : undefined,
@@ -351,6 +352,40 @@ export const questionsApi = {
       return data ? convertDbQuestion(data) : null;
     } catch (error) {
       console.error('Error fetching question:', error);
+      return null;
+    }
+  },
+
+  async updateQuestion(id: string, updates: Partial<Question>): Promise<Question | null> {
+    try {
+      const now = new Date().toISOString();
+
+      const dbUpdates: any = {
+        updated_at: now,
+      };
+
+      if (updates.state !== undefined) dbUpdates.state = updates.state;
+      if (updates.pushedTo !== undefined) dbUpdates.pushed_to = updates.pushedTo;
+      if (updates.title !== undefined) dbUpdates.title = updates.title;
+      if (updates.description !== undefined) dbUpdates.description = updates.description;
+      if (updates.resolutionCriteria !== undefined) dbUpdates.resolution_criteria = updates.resolutionCriteria;
+      if (updates.categories !== undefined) dbUpdates.categories = updates.categories;
+
+      const { data, error } = await supabase
+        .from('questions')
+        .update(dbUpdates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating question:', error);
+        return null;
+      }
+
+      return data ? convertDbQuestion(data) : null;
+    } catch (error) {
+      console.error('Error updating question:', error);
       return null;
     }
   },
