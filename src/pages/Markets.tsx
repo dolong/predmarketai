@@ -1463,11 +1463,11 @@ export function Markets() {
 
       {/* Platform Selection Dialog */}
       <Dialog open={platformDialogOpen} onOpenChange={setPlatformDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Select Target Platforms</DialogTitle>
             <DialogDescription>
-              Choose which market platforms this question should be pushed to when queued
+              Choose which platforms to push this question to
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
