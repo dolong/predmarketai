@@ -4,13 +4,6 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/synapse/:path*",
-      "destination": "https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/:path*",
-      "headers": {
-        "x-api-key": "TZ3eYpuOwDfm6CEyLJyLmN0y"
-      }
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
