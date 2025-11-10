@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { Clock, TrendingUp, Tag, Brain } from "lucide-react";
+import { Clock, TrendingUp, Tag, Brain, Calendar, CheckCircle2, XCircle } from "lucide-react";
 import { getCategoryColor } from "../lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 
 interface SynapseQuestion {
   id: number;
@@ -31,6 +38,8 @@ export function SynapseMarkets() {
   const [questions, setQuestions] = useState<SynapseQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<SynapseQuestion | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     loadQuestions();
@@ -73,6 +82,11 @@ export function SynapseMarkets() {
       'from-orange-500/10 to-amber-500/10'
     ];
     return gradients[index % gradients.length];
+  };
+
+  const handleQuestionClick = (question: SynapseQuestion) => {
+    setSelectedQuestion(question);
+    setModalOpen(true);
   };
 
   return (
@@ -159,7 +173,8 @@ export function SynapseMarkets() {
             {questions.map((question, index) => (
               <Card
                 key={question.id}
-                className="group hover:shadow-lg transition-all border-2 hover:border-primary/50 relative overflow-hidden"
+                className="group hover:shadow-lg transition-all border-2 hover:border-primary/50 relative overflow-hidden cursor-pointer"
+                onClick={() => handleQuestionClick(question)}
               >
                 {/* Gradient background */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${getGradientClass(index)} opacity-0 group-hover:opacity-100 transition-opacity`} />
@@ -231,6 +246,165 @@ export function SynapseMarkets() {
           </div>
         )}
       </div>
+
+      {/* Question Details Modal */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {selectedQuestion && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge
+                    className={
+                      selectedQuestion.answeredAt
+                        ? "bg-gray-100 text-gray-700 border-gray-200"
+                        : "bg-green-100 text-green-700 border-green-200"
+                    }
+                  >
+                    {selectedQuestion.answeredAt ? "Resolved" : "Active"}
+                  </Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    ID: {selectedQuestion.id}
+                  </Badge>
+                </div>
+                <DialogTitle className="text-2xl">{selectedQuestion.question}</DialogTitle>
+                <DialogDescription>
+                  {selectedQuestion.extra || "No additional description provided"}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Image if available */}
+                {selectedQuestion.image && (
+                  <div className="rounded-lg overflow-hidden border">
+                    <img
+                      src={selectedQuestion.image}
+                      alt="Question visual"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                )}
+
+                {/* Categories */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Categories
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge
+                      variant="outline"
+                      className={getCategoryColor("Synapse")}
+                    >
+                      Synapse
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Timeline
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Created</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(selectedQuestion.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-4 w-4 mt-0.5 text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Goes Live</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(selectedQuestion.liveAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <XCircle className="h-4 w-4 mt-0.5 text-orange-600" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Expires</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(selectedQuestion.liveUntil).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    {selectedQuestion.updatedAt && (
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-4 w-4 mt-0.5 text-blue-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Last Updated</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(selectedQuestion.updatedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedQuestion.answeredAt && (
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Answered</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(selectedQuestion.answeredAt).toLocaleString()}
+                          </p>
+                          {selectedQuestion.answerValue !== null && (
+                            <p className="text-sm font-semibold text-green-700 mt-1">
+                              Answer Value: {selectedQuestion.answerValue}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {selectedQuestion.markedAsCompleteAt && (
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Marked Complete</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(selectedQuestion.markedAsCompleteAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {selectedQuestion.scheduledForCompletionAt && (
+                      <div className="flex items-start gap-3">
+                        <Calendar className="h-4 w-4 mt-0.5 text-purple-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">Scheduled for Completion</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(selectedQuestion.scheduledForCompletionAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Technical Details */}
+                {selectedQuestion.qstashMessageId && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Brain className="h-4 w-4" />
+                      Technical Details
+                    </h3>
+                    <div className="rounded-lg bg-muted p-3">
+                      <p className="text-xs text-muted-foreground">QStash Message ID</p>
+                      <p className="text-sm font-mono break-all">{selectedQuestion.qstashMessageId}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
