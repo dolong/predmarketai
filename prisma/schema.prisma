@@ -83,6 +83,7 @@ model Question {
   resolutionCriteria String         @map("resolution_criteria") @db.Text
   topic              String?
   agentId            String         @map("agent_id")
+  pushedTo           String[]       @default([]) @map("pushed_to")
   reviewStatus       ReviewStatus?  @map("review_status")
   outcome            Outcome?
   answerCount        Int            @default(0) @map("answer_count")
