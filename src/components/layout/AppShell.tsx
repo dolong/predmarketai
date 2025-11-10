@@ -28,6 +28,7 @@ import {
   Plus,
   User,
   Bot,
+  Zap,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -51,6 +52,7 @@ const navigation = [
     items: [
       { id: "overview", label: "Overview", icon: LayoutDashboard, path: "/overview" },
       { id: "markets", label: "Markets", icon: Sparkles, path: "/markets" },
+      { id: "synapse-markets", label: "Synapse Markets", icon: Zap, path: "/synapse-markets" },
       { id: "resolve", label: "Resolve Markets", icon: Target, path: "/resolve" },
       { id: "answers", label: "Market History", icon: MessageSquare, path: "/answers" },
       { id: "agents", label: "AI Agents", icon: Bot, path: "/agents" },
