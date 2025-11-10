@@ -40,9 +40,9 @@ export function SynapseMarkets() {
     setLoading(true);
     setError(null);
     try {
-      // Try with API key as query parameter to avoid CORS issues
+      // Use local proxy to avoid CORS issues (proxy adds x-api-key header)
       const response = await fetch(
-        'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?filterBy=All&page=1&limit=100&apiKey=TZ3eYpuOwDfm6CEyLJyLmN0y'
+        '/api/synapse/api/predictive/wager-questions?filterBy=All&page=1&limit=100'
       );
 
       if (!response.ok) {

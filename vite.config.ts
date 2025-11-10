@@ -60,5 +60,17 @@
     server: {
       port: 3000,
       open: true,
+      proxy: {
+        '/api/synapse': {
+          target: 'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/synapse/, ''),
+          configure: (proxy, _options) => {
+            proxy.on('proxyReq', (proxyReq, _req, _res) => {
+              proxyReq.setHeader('x-api-key', 'TZ3eYpuOwDfm6CEyLJyLmN0y');
+            });
+          },
+        },
+      },
     },
   });
