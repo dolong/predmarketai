@@ -41,7 +41,12 @@ export function SynapseMarkets() {
     setError(null);
     try {
       const response = await fetch(
-        'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?filterBy=All&page=1&limit=100'
+        'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?filterBy=All&page=1&limit=100',
+        {
+          headers: {
+            'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y'
+          }
+        }
       );
 
       if (!response.ok) {
