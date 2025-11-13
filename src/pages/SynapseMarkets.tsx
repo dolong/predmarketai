@@ -60,15 +60,11 @@ export function SynapseMarkets() {
     setError(null);
     try {
       // Direct call to external API (bypassing Vercel proxy issues)
-      const url = 'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100';
+      // Pass API key as query parameter to avoid CORS issues with headers
+      const url = 'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100&x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y';
       console.log('[Synapse] Fetching from:', url);
 
-      const response = await fetch(url, {
-        headers: {
-          'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(url);
       console.log('[Synapse] Response status:', response.status, response.statusText);
       console.log('[Synapse] Response content-type:', response.headers.get('content-type'));
 
@@ -139,10 +135,9 @@ export function SynapseMarkets() {
 
     setSaving(true);
     try {
-      const response = await fetch('https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions', {
+      const response = await fetch('https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y', {
         method: 'POST',
         headers: {
-          'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -194,11 +189,8 @@ export function SynapseMarkets() {
     }
 
     try {
-      const response = await fetch(`https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?id=${selectedQuestion.id}`, {
+      const response = await fetch(`https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?id=${selectedQuestion.id}&x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y`, {
         method: 'DELETE',
-        headers: {
-          'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
-        },
       });
 
       if (!response.ok) {
