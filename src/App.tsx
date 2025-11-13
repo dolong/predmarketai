@@ -3,6 +3,7 @@ import { AppShell } from "./components/layout/AppShell";
 import { Overview } from "./pages/Overview";
 import { Markets } from "./pages/Markets";
 import { SynapseMarkets } from "./pages/SynapseMarkets";
+import { VectraMarkets } from "./pages/VectraMarkets";
 import { ManageQuestions } from "./pages/ManageQuestions";
 import { ResolveScore } from "./pages/ResolveScore";
 import { AnswersExplorer } from "./pages/AnswersExplorer";
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/overview" element={<Overview />} />
           <Route path="/markets" element={<Markets />} />
           <Route path="/synapse-markets" element={<SynapseMarkets />} />
+          <Route path="/vectra-markets" element={<VectraMarkets />} />
           <Route path="/questions" element={<ManageQuestions />} />
           <Route path="/resolve" element={<ResolveScore />} />
           <Route path="/answers" element={<AnswersExplorer />} />

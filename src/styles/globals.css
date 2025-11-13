@@ -87,6 +87,11 @@
 }
 
 @theme inline {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -229,4 +234,29 @@ html {
 .dark .glass-effect {
   background: rgba(23, 23, 23, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Question list scroll area max height */
+.question-list-scroll {
+  max-height: 400px;
+  overflow: auto;
+}
+
+/* Responsive grid utilities for suggestion cards */
+.suggestions-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .suggestions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .suggestions-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

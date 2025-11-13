@@ -104,8 +104,25 @@ model Question {
   outcomeEvidence    OutcomeEvidence[]
   answers            Answer[]
   aiResolutionProposal AIResolutionProposal?
+  novaRating         NovaRating?
 
   @@map("questions")
+}
+
+model NovaRating {
+  id         Int      @id @default(autoincrement())
+  questionId String   @unique @map("question_id")
+  rating     String   @db.VarChar(1)
+  confidence Int?
+  sparkline  Int[]    @default([])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("nova_ratings")
+  @@index([questionId])
+  @@index([rating])
 }
 
 // ProposedQuestion model removed - consolidated into Question model with 'pending', 'approved', 'rejected' states
