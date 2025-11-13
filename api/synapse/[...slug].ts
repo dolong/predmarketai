@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { path } = req.query;
-  const pathString = Array.isArray(path) ? path.join('/') : path || '';
+  const { slug } = req.query;
+  const pathString = Array.isArray(slug) ? slug.join('/') : slug || '';
 
   // Construct the target URL
   const targetUrl = `https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/${pathString}${req.url?.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;

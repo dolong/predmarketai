@@ -22,7 +22,15 @@
       "Bash(psql:*)",
       "Bash(tsx src/scripts/migrate-categories.ts:*)",
       "Bash(npx tsx:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(npx prisma db push)",
+      "Bash(npm run db:migrate:*)",
+      "Bash(npx prisma db execute:*)",
+      "Bash(echo:*)",
+      "Bash(\"C:\\Users\\dolon\\Documents\\Aiautomationdashboardui-main\\src\\index.css\")"
     ],
     "deny": [],
     "ask": []
