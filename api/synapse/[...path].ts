@@ -8,11 +8,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const targetUrl = `https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/${pathString}${req.url?.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
 
   try {
+    const apiKey = process.env.SYNAPSE_API_KEY;
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+
     const response = await fetch(targetUrl, {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
+        'x-api-key': apiKey,
         ...(req.body ? {} : {}),
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
