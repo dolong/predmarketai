@@ -60,15 +60,23 @@ export function SynapseMarkets() {
     setError(null);
     try {
       // Use local proxy to avoid CORS issues (proxy adds x-api-key header)
-      const response = await fetch(
-        '/api/synapse/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100'
-      );
+      const url = '/api/synapse/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100';
+      console.log('[Synapse] Fetching from:', url);
+
+      const response = await fetch(url);
+      console.log('[Synapse] Response status:', response.status, response.statusText);
+      console.log('[Synapse] Response content-type:', response.headers.get('content-type'));
 
       if (!response.ok) {
-        throw new Error('Failed to fetch questions');
+        const text = await response.text();
+        console.error('[Synapse] Error response body:', text.substring(0, 500));
+        throw new Error(`Failed to fetch questions: ${response.status} ${response.statusText}`);
       }
 
-      const data: SynapseApiResponse = await response.json();
+      const text = await response.text();
+      console.log('[Synapse] Response body (first 500 chars):', text.substring(0, 500));
+
+      const data: SynapseApiResponse = JSON.parse(text);
 
       if (data.success && data.data && data.data.result) {
         setQuestions(data.data.result);
