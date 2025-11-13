@@ -30,7 +30,8 @@
       "Bash(npm run db:migrate:*)",
       "Bash(npx prisma db execute:*)",
       "Bash(echo:*)",
-      "Bash(\"C:\\Users\\dolon\\Documents\\Aiautomationdashboardui-main\\src\\index.css\")"
+      "Bash(\"C:\\Users\\dolon\\Documents\\Aiautomationdashboardui-main\\src\\index.css\")",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
