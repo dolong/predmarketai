@@ -59,9 +59,8 @@ export function SynapseMarkets() {
     setLoading(true);
     setError(null);
     try {
-      // Direct call to external API (bypassing Vercel proxy issues)
-      // Pass API key as query parameter to avoid CORS issues with headers
-      const url = 'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100&x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y';
+      // Use local proxy (works in dev, CORS issues in production)
+      const url = '/api/synapse/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100';
       console.log('[Synapse] Fetching from:', url);
 
       const response = await fetch(url);
@@ -135,7 +134,7 @@ export function SynapseMarkets() {
 
     setSaving(true);
     try {
-      const response = await fetch('https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y', {
+      const response = await fetch('/api/synapse/api/predictive/wager-questions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +188,7 @@ export function SynapseMarkets() {
     }
 
     try {
-      const response = await fetch(`https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?id=${selectedQuestion.id}&x-api-key=TZ3eYpuOwDfm6CEyLJyLmN0y`, {
+      const response = await fetch(`/api/synapse/api/predictive/wager-questions?id=${selectedQuestion.id}`, {
         method: 'DELETE',
       });
 
