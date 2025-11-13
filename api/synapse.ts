@@ -1,14 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { slug } = req.query;
-  const pathString = Array.isArray(slug) ? slug.join('/') : slug || '';
+  // Extract the path after /api/synapse
+  const fullPath = req.url || '';
+  const apiPath = fullPath.replace('/api/synapse', '');
 
   // Construct the target URL
-  const targetUrl = `https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/${pathString}${req.url?.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`;
+  const targetUrl = `https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev${apiPath}`;
 
   console.log('[Proxy] Method:', req.method);
-  console.log('[Proxy] Path:', pathString);
+  console.log('[Proxy] Full URL:', req.url);
+  console.log('[Proxy] API Path:', apiPath);
   console.log('[Proxy] Target URL:', targetUrl);
 
   try {
@@ -26,7 +28,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        ...(req.body ? {} : {}),
       },
       body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
     });
