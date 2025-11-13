@@ -4,8 +4,23 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/synapse/:path*",
+      "destination": "https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/synapse/(.*)",
+      "headers": [
+        {
+          "key": "x-api-key",
+          "value": "TZ3eYpuOwDfm6CEyLJyLmN0y"
+        }
+      ]
     }
   ]
 }
