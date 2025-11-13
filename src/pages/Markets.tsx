@@ -28,13 +28,14 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "../components/ui/tooltip";
-import { Sparkles, Check, X, ChevronDown, ChevronLeft, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2 } from "lucide-react";
+import { Sparkles, Check, X, ChevronDown, ChevronLeft, ChevronRight, Search, Clock, Tag, TrendingUp, Pause, Edit, XCircle, Play, Loader2, Trash2, Undo2, Send } from "lucide-react";
 import { CardHeader, CardTitle } from "../components/ui/card";
 import { questionsApi, agentsApi } from "../lib/supabase";
 import { ProposedQuestion, Agent } from "../lib/types";
 import { formatDate, formatDateTime, getCategoryColor } from "../lib/utils";
 import { EmptyState } from "../components/shared/EmptyState";
 import { QuestionDetailsModal } from "../components/shared/QuestionDetailsModal";
+import { NovaProcessingModal } from "../components/shared/NovaProcessingModal";
 import { toast } from "sonner@2.0.3";
 
 export function Markets() {
@@ -52,6 +53,7 @@ export function Markets() {
   const [platformDialogOpen, setPlatformDialogOpen] = useState(false);
   const [questionToApprove, setQuestionToApprove] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [novaProcessingOpen, setNovaProcessingOpen] = useState(false);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,6 +151,15 @@ export function Markets() {
 
     return matchesSearch && matchesCategory && matchesSource && matchesType;
   });
+
+  // Helper to get friendly platform name
+  const getPlatformDisplayName = (platform: string): string => {
+    const platformMap: Record<string, string> = {
+      'synapse': 'Synapse Markets',
+      'vectra': 'Vectra Markets'
+    };
+    return platformMap[platform] || platform;
+  };
 
   // Count by state for tab labels
   const pendingCount = questions.filter(q => q.state === 'pending').length;
@@ -252,9 +263,12 @@ export function Markets() {
   };
 
   const handleApproveFromModal = (question: ProposedQuestion) => {
-    setQuestions(questions.map(q =>
-      q.id === question.id ? { ...q, state: 'approved' as const, updatedAt: new Date() } : q
-    ));
+    // Close the details modal first
+    setDetailsModalOpen(false);
+    // Open platform selection dialog
+    setQuestionToApprove(question.id);
+    setSelectedPlatforms([]);
+    setPlatformDialogOpen(true);
   };
 
   const handleRejectFromModal = (question: ProposedQuestion) => {
@@ -311,6 +325,116 @@ export function Markets() {
       q.id === updatedQuestion.id ? { ...updatedQuestion, updatedAt: new Date() } : q
     ));
     toast.success("Question details updated");
+  };
+
+  const handleUnqueue = async (id: string) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      const updatedQuestion = await questionsApi.updateQuestion(id, {
+        state: 'pending',
+        pushedTo: []
+      });
+
+      if (updatedQuestion) {
+        toast.success("Question moved back to suggestions");
+        setQuestions(questions.map(q =>
+          q.id === id ? updatedQuestion : q
+        ));
+      } else {
+        toast.error("Failed to unqueue question");
+      }
+    }
+  };
+
+  const handleDeleteQueued = async (id: string) => {
+    const question = questions.find((q) => q.id === id);
+    if (question) {
+      const updatedQuestion = await questionsApi.updateQuestionState(id, 'rejected');
+      if (updatedQuestion) {
+        toast.success("Question deleted");
+        setQuestions(questions.map(q =>
+          q.id === id ? updatedQuestion : q
+        ));
+      } else {
+        toast.error("Failed to delete question");
+      }
+    }
+  };
+
+  // Helper to convert Date to MySQL datetime format (YYYY-MM-DD HH:MM:SS)
+  const toMySQLDateTime = (date: Date | string): string => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const handlePush = async (id: string) => {
+    const question = questions.find((q) => q.id === id);
+
+    if (!question) {
+      toast.error("Question not found");
+      return;
+    }
+
+    // Check if the question has pushedTo platforms
+    if (!question.pushedTo || question.pushedTo.length === 0) {
+      toast.error("Question must have platforms selected before pushing");
+      return;
+    }
+
+    try {
+      // Push to each selected platform
+      const pushPromises = question.pushedTo.map(async (platform: string) => {
+        const apiPath = platform === 'synapse'
+          ? '/api/synapse/api/predictive/wager-questions'
+          : `/api/${platform}/api/predictive/wager-questions`;
+
+        const response = await fetch(apiPath, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: 0, // 0 for new question on platform
+            question: question.title,
+            extra: question.description || "",
+            liveUntil: toMySQLDateTime(question.answerEndAt),
+            liveAt: toMySQLDateTime(question.liveDate || new Date()),
+            settlementAt: toMySQLDateTime(question.settlementAt),
+            image: "", // Add image support later if needed
+            client: platform
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to push to ${platform}`);
+        }
+
+        return platform;
+      });
+
+      const pushedPlatforms = await Promise.all(pushPromises);
+
+      // Update the question state to published in database
+      const updatedQuestion = await questionsApi.updateQuestionState(id, 'published');
+
+      if (updatedQuestion) {
+        toast.success(`Question pushed to ${pushedPlatforms.join(', ')} and is now live!`);
+        setQuestions(questions.map(q =>
+          q.id === id ? updatedQuestion : q
+        ));
+      } else {
+        toast.error("Failed to update question state");
+      }
+    } catch (error) {
+      console.error('Error pushing question:', error);
+      toast.error(error instanceof Error ? error.message : "Failed to push question to platform");
+    }
   };
 
   // Get top suggestions by AI score for horizontal feed
@@ -693,7 +817,7 @@ export function Markets() {
           <Card>
             <CardContent className="p-0">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "suggestions" | "queued" | "live" | "paused" | "deleted")} className="w-full">
-                <div className="border-b px-6 pt-4">
+                <div className="border-b px-6 pt-4 flex items-center justify-between">
                   <TabsList>
                     <TabsTrigger value="suggestions">
                       All AI Suggestions ({pendingCount})
@@ -711,6 +835,15 @@ export function Markets() {
                       Deleted ({rejectedCount})
                     </TabsTrigger>
                   </TabsList>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNovaProcessingOpen(true)}
+                    className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/20 hover:from-amber-500/20 hover:to-orange-500/20 mb-1"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2 text-amber-600" />
+                    Process Nova Ratings
+                  </Button>
                 </div>
                 
                 {/* AI Suggestions Tab */}
@@ -846,7 +979,7 @@ export function Markets() {
                           <TableHead>Answer End</TableHead>
                           <TableHead>Settlement</TableHead>
                           <TableHead>Type</TableHead>
-                          <TableHead className="w-32">Actions</TableHead>
+                          <TableHead className="w-80">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -917,7 +1050,7 @@ export function Markets() {
                                         variant="outline"
                                         className="bg-blue-50 text-blue-700 border-blue-200"
                                       >
-                                        {platform}
+                                        {getPlatformDisplayName(platform)}
                                       </Badge>
                                     ))}
                                   </div>
@@ -936,18 +1069,51 @@ export function Markets() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditDetails(proposal)}
-                                >
-                                  Edit Details
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditDetails(proposal)}
+                                    title="Edit Details"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-green-600 hover:bg-green-700 text-white border-green-600"
+                                    onClick={() => handlePush(proposal.id)}
+                                    title="Push to platform and go live"
+                                  >
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Push
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleUnqueue(proposal.id)}
+                                    title="Move back to Suggestions"
+                                  >
+                                    <Undo2 className="h-4 w-4 mr-1" />
+                                    Unqueue
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    onClick={() => handleDeleteQueued(proposal.id)}
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                    Delete
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                             {expandedRow === proposal.id && (
                               <TableRow>
-                                <TableCell colSpan={9} className="bg-muted/50">
+                                <TableCell colSpan={10} className="bg-muted/50">
                                   <div className="p-4 space-y-4">
                                     <div>
                                       <h4 className="mb-2">Description</h4>
@@ -1463,7 +1629,7 @@ export function Markets() {
 
       {/* Platform Selection Dialog */}
       <Dialog open={platformDialogOpen} onOpenChange={setPlatformDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Select Target Platforms</DialogTitle>
             <DialogDescription>
@@ -1475,12 +1641,12 @@ export function Markets() {
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="synapse"
-                  checked={selectedPlatforms.includes("Synapse Markets")}
+                  checked={selectedPlatforms.includes("synapse")}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      setSelectedPlatforms([...selectedPlatforms, "Synapse Markets"]);
+                      setSelectedPlatforms([...selectedPlatforms, "synapse"]);
                     } else {
-                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "Synapse Markets"));
+                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "synapse"));
                     }
                   }}
                 />
@@ -1491,12 +1657,12 @@ export function Markets() {
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="vectra"
-                  checked={selectedPlatforms.includes("Vectra Markets")}
+                  checked={selectedPlatforms.includes("vectra")}
                   onCheckedChange={(checked) => {
                     if (checked) {
-                      setSelectedPlatforms([...selectedPlatforms, "Vectra Markets"]);
+                      setSelectedPlatforms([...selectedPlatforms, "vectra"]);
                     } else {
-                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "Vectra Markets"));
+                      setSelectedPlatforms(selectedPlatforms.filter(p => p !== "vectra"));
                     }
                   }}
                 />
@@ -1531,7 +1697,15 @@ export function Markets() {
         onSave={handleSaveQuestion}
         onApprove={handleApproveFromModal}
         onReject={handleRejectFromModal}
-        showActions={activeTab === "suggestions" || activeTab === "queued"}
+        showActions={activeTab === "suggestions"}
+      />
+
+      {/* Nova Processing Modal */}
+      <NovaProcessingModal
+        open={novaProcessingOpen}
+        onOpenChange={setNovaProcessingOpen}
+        questions={questions.filter((q: ProposedQuestion) => q.state === 'pending')}
+        onComplete={loadData}
       />
     </div>
   );

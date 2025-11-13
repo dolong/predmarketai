@@ -17,7 +17,7 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 
-interface SynapseQuestion {
+interface VectraQuestion {
   id: number;
   liveAt: string;
   liveUntil: string;
@@ -34,21 +34,21 @@ interface SynapseQuestion {
   image: string;
 }
 
-interface SynapseApiResponse {
+interface VectraApiResponse {
   success: boolean;
   data: {
-    result: SynapseQuestion[];
+    result: VectraQuestion[];
   };
 }
 
-export function SynapseMarkets() {
-  const [questions, setQuestions] = useState<SynapseQuestion[]>([]);
+export function VectraMarkets() {
+  const [questions, setQuestions] = useState<VectraQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedQuestion, setSelectedQuestion] = useState<SynapseQuestion | null>(null);
+  const [selectedQuestion, setSelectedQuestion] = useState<VectraQuestion | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedQuestion, setEditedQuestion] = useState<SynapseQuestion | null>(null);
+  const [editedQuestion, setEditedQuestion] = useState<VectraQuestion | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -61,14 +61,14 @@ export function SynapseMarkets() {
     try {
       // Use local proxy to avoid CORS issues (proxy adds x-api-key header)
       const response = await fetch(
-        '/api/synapse/api/predictive/wager-questions?client=synapse&filterBy=All&page=1&limit=100'
+        '/api/synapse/api/predictive/wager-questions?client=vectra&filterBy=All&page=1&limit=100'
       );
 
       if (!response.ok) {
         throw new Error('Failed to fetch questions');
       }
 
-      const data: SynapseApiResponse = await response.json();
+      const data: VectraApiResponse = await response.json();
 
       if (data.success && data.data && data.data.result) {
         setQuestions(data.data.result);
@@ -76,7 +76,7 @@ export function SynapseMarkets() {
         throw new Error('Invalid response format');
       }
     } catch (err) {
-      console.error('Error loading Synapse questions:', err);
+      console.error('Error loading Vectra questions:', err);
       setError(err instanceof Error ? err.message : 'Failed to load questions');
     } finally {
       setLoading(false);
@@ -94,7 +94,7 @@ export function SynapseMarkets() {
     return gradients[index % gradients.length];
   };
 
-  const handleQuestionClick = (question: SynapseQuestion) => {
+  const handleQuestionClick = (question: VectraQuestion) => {
     setSelectedQuestion(question);
     setEditedQuestion(question);
     setIsEditing(false);
@@ -139,7 +139,7 @@ export function SynapseMarkets() {
           liveAt: toMySQLDateTime(editedQuestion.liveAt),
           settlementAt: toMySQLDateTime(editedQuestion.settlementAt),
           image: editedQuestion.image || "",
-          client: "synapse"
+          client: "vectra"
         })
       });
 
@@ -217,9 +217,9 @@ export function SynapseMarkets() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold mb-2">Synapse Markets</h1>
+        <h1 className="text-3xl font-bold mb-2">Vectra Markets</h1>
         <p className="text-muted-foreground">
-          Live questions from Synapse prediction markets
+          Live questions from Vectra prediction markets
         </p>
       </div>
 
@@ -276,7 +276,7 @@ export function SynapseMarkets() {
         {loading ? (
           <div className="text-center py-12">
             <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
-            <p className="text-muted-foreground">Loading Synapse questions...</p>
+            <p className="text-muted-foreground">Loading Vectra questions...</p>
           </div>
         ) : error ? (
           <Card className="p-12 text-center border-2 border-destructive">
@@ -289,7 +289,7 @@ export function SynapseMarkets() {
             <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Questions Available</h3>
             <p className="text-muted-foreground">
-              No Synapse questions found at this time
+              No Vectra questions found at this time
             </p>
           </Card>
         ) : (
@@ -336,9 +336,9 @@ export function SynapseMarkets() {
                     <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                     <Badge
                       variant="outline"
-                      className={getCategoryColor("Synapse")}
+                      className={getCategoryColor("Vectra")}
                     >
-                      Synapse
+                      Vectra
                     </Badge>
                   </div>
 
@@ -475,9 +475,9 @@ export function SynapseMarkets() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       variant="outline"
-                      className={getCategoryColor("Synapse")}
+                      className={getCategoryColor("Vectra")}
                     >
-                      Synapse
+                      Vectra
                     </Badge>
                   </div>
                 </div>

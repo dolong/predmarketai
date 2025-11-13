@@ -52,6 +52,9 @@ function convertDbQuestion(dbQuestion: any): Question {
     reviewStatus: dbQuestion.review_status,
     outcome: dbQuestion.outcome,
     aiScore: dbQuestion.ai_score ? parseFloat(dbQuestion.ai_score) : undefined,
+    rating: dbQuestion.nova_rating?.rating as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | undefined,
+    ratingConfidence: dbQuestion.nova_rating?.confidence,
+    ratingSparkline: dbQuestion.nova_rating?.sparkline || undefined,
     riskFlags: [],
     categories: dbQuestion.categories || [],
     type: dbQuestion.type || 'binary',
@@ -301,7 +304,10 @@ export const questionsApi = {
     try {
       const { data, error } = await supabase
         .from('questions')
-        .select('*')
+        .select(`
+          *,
+          nova_rating:nova_ratings(rating, confidence, sparkline)
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -431,6 +437,96 @@ export const questionsApi = {
       return true;
     } catch (error) {
       console.error('Error deleting question:', error);
+      return false;
+    }
+  },
+};
+
+export const novaRatingsApi = {
+  async createOrUpdateRating(questionId: string, rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F', confidence?: number, sparkline?: number[]): Promise<boolean> {
+    try {
+      const now = new Date().toISOString();
+
+      // Check if rating exists
+      const { data: existing } = await supabase
+        .from('nova_ratings')
+        .select('id')
+        .eq('question_id', questionId)
+        .single();
+
+      if (existing) {
+        // Update existing rating
+        const { error } = await supabase
+          .from('nova_ratings')
+          .update({
+            rating,
+            confidence,
+            sparkline,
+            updated_at: now,
+          })
+          .eq('question_id', questionId);
+
+        if (error) {
+          console.error('Error updating nova rating:', error);
+          return false;
+        }
+      } else {
+        // Create new rating
+        const { error } = await supabase
+          .from('nova_ratings')
+          .insert({
+            question_id: questionId,
+            rating,
+            confidence,
+            sparkline: sparkline || [],
+            created_at: now,
+            updated_at: now,
+          });
+
+        if (error) {
+          console.error('Error creating nova rating:', error);
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error saving nova rating:', error);
+      return false;
+    }
+  },
+
+  async batchCreateOrUpdateRatings(ratings: Array<{ questionId: string; rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; confidence?: number; sparkline?: number[] }>): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const rating of ratings) {
+      const result = await this.createOrUpdateRating(rating.questionId, rating.rating, rating.confidence, rating.sparkline);
+      if (result) {
+        success++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { success, failed };
+  },
+
+  async deleteRating(questionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('nova_ratings')
+        .delete()
+        .eq('question_id', questionId);
+
+      if (error) {
+        console.error('Error deleting nova rating:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting nova rating:', error);
       return false;
     }
   },
