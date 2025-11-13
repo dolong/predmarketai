@@ -59,9 +59,15 @@ export function VectraMarkets() {
     setLoading(true);
     setError(null);
     try {
-      // Use local proxy to avoid CORS issues (proxy adds x-api-key header)
+      // Direct call to external API (CORS now whitelisted for Vercel URL)
       const response = await fetch(
-        '/api/synapse/api/predictive/wager-questions?client=vectra&filterBy=All&page=1&limit=100'
+        'https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?client=vectra&filterBy=All&page=1&limit=100',
+        {
+          headers: {
+            'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
+            'Content-Type': 'application/json',
+          },
+        }
       );
 
       if (!response.ok) {
@@ -126,9 +132,10 @@ export function VectraMarkets() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/synapse/api/predictive/wager-questions', {
+      const response = await fetch('https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions', {
         method: 'POST',
         headers: {
+          'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -180,8 +187,11 @@ export function VectraMarkets() {
     }
 
     try {
-      const response = await fetch(`/api/synapse/api/predictive/wager-questions?id=${selectedQuestion.id}`, {
+      const response = await fetch(`https://admin-launcher-api-synapse-dev.dolong-4e5.workers.dev/api/predictive/wager-questions?id=${selectedQuestion.id}`, {
         method: 'DELETE',
+        headers: {
+          'x-api-key': 'TZ3eYpuOwDfm6CEyLJyLmN0y',
+        },
       });
 
       if (!response.ok) {
