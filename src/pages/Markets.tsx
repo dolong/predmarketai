@@ -444,7 +444,7 @@ export function Markets() {
     .slice(0, 6);
 
   // Helper function to truncate title for desktop
-  const truncateTitle = (title: string, maxLength: number = 75) => {
+  const truncateTitle = (title: string, maxLength: number = 50) => {
     if (title.length <= maxLength) return title;
     return title.substring(0, maxLength) + '...';
   };
