@@ -293,8 +293,17 @@ export function Overview() {
         : orderA - orderB;
     });
 
-  // Get trending AI suggestions (highest scores from pending questions)
-  const trendingSuggestions = [...questions.filter(q => q.state === 'pending' && q.aiScore)]
+  // Get all AI-generated suggestions (excluding past settlement date)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+  const trendingSuggestions = [...questions.filter(q => {
+    if (q.state !== 'pending' || !q.aiScore) return false;
+
+    // Filter out questions past their settlement date
+    const settlementDate = new Date(q.settlementAt);
+    return settlementDate >= today;
+  })]
     .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0));
 
   // Calculate stats from real data
@@ -493,7 +502,7 @@ export function Overview() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl">🔥 Top AI Suggestions</h2>
+            <h2 className="text-2xl">All AI Agent Generated</h2>
           </div>
           <Button variant="ghost" onClick={() => navigate('/markets')}>
             View All Suggestions
