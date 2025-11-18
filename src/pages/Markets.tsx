@@ -437,9 +437,18 @@ export function Markets() {
     }
   };
 
-  // Get top suggestions by AI score for horizontal feed
+  // Get all AI-generated suggestions (excluding past settlement date)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
   const topSuggestions = questions
-    .filter(q => q.state === 'pending' && q.aiScore)
+    .filter(q => {
+      if (q.state !== 'pending' || !q.aiScore) return false;
+
+      // Filter out questions past their settlement date
+      const settlementDate = new Date(q.settlementAt);
+      return settlementDate >= today;
+    })
     .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 6);
 
@@ -479,7 +488,7 @@ export function Markets() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-purple-500" />
-                <CardTitle className="text-lg">Top AI Suggestions</CardTitle>
+                <CardTitle className="text-lg">All AI Agent Generated</CardTitle>
               </div>
               <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
                 Highest Scored
