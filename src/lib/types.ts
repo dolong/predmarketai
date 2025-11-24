@@ -117,7 +117,7 @@ export interface Agent {
   categories: string[];
   sources: AgentSource[];
   questionPrompt: string;
-  resolutionPrompt: string;
+  resolutionPrompt?: string;
   baseModel: string;
   frequency: AgentFrequency;
   status: 'active' | 'paused' | 'error';

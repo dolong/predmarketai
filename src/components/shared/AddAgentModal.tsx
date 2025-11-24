@@ -104,7 +104,7 @@ export function AddAgentModal({
   };
 
   const handleSave = () => {
-    if (!name || !questionPrompt || !resolutionPrompt || sources.length === 0) {
+    if (!name || !questionPrompt || sources.length === 0) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -115,7 +115,7 @@ export function AddAgentModal({
       categories,
       sources,
       questionPrompt,
-      resolutionPrompt,
+      resolutionPrompt: resolutionPrompt || undefined,
       baseModel,
       frequency,
       status: 'active',
@@ -373,7 +373,7 @@ export function AddAgentModal({
 
           {/* Resolution Prompt */}
           <div>
-            <Label htmlFor="resolutionPrompt">Resolution Prompt *</Label>
+            <Label htmlFor="resolutionPrompt">Resolution Prompt (Optional)</Label>
             <Textarea
               id="resolutionPrompt"
               value={resolutionPrompt}
