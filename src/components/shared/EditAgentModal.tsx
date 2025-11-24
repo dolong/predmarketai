@@ -21,7 +21,12 @@ import {
 import { Badge } from "../ui/badge";
 import { AgentSourceType, AgentFrequency, Agent, AgentSource } from "../../lib/types";
 import { toast } from "sonner@2.0.3";
-import { Plus, X, Globe, Link as LinkIcon, Twitter, FileJson } from "lucide-react";
+import { Plus, X, Globe, Link as LinkIcon, Twitter, FileJson, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible";
 
 interface EditAgentModalProps {
   open: boolean;
@@ -49,6 +54,7 @@ export function EditAgentModal({
   const [newSourceType, setNewSourceType] = useState<AgentSourceType | "">("");
   const [newSourceConfig, setNewSourceConfig] = useState("");
   const [redditApiEndpoint, setRedditApiEndpoint] = useState("https://theanomaly.app.n8n.cloud/webhook/subreddit");
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   // Pre-populate form fields when agent changes
   useEffect(() => {
@@ -395,17 +401,32 @@ export function EditAgentModal({
             />
           </div>
 
-          {/* Resolution Prompt */}
-          <div>
-            <Label htmlFor="resolutionPrompt">Resolution Prompt (Optional)</Label>
-            <Textarea
-              id="resolutionPrompt"
-              value={resolutionPrompt}
-              onChange={(e) => setResolutionPrompt(e.target.value)}
-              placeholder="e.g., Answer the question by researching the web and finding the answer."
-              className="mt-2 min-h-[100px]"
-            />
-          </div>
+          {/* Advanced Section */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span className="font-semibold">Advanced Options</span>
+                {isAdvancedOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              {/* Resolution Prompt */}
+              <div>
+                <Label htmlFor="resolutionPrompt">Resolution Prompt (Optional)</Label>
+                <Textarea
+                  id="resolutionPrompt"
+                  value={resolutionPrompt}
+                  onChange={(e) => setResolutionPrompt(e.target.value)}
+                  placeholder="e.g., Answer the question by researching the web and finding the answer."
+                  className="mt-2 min-h-[100px]"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Base Model */}
           <div>
