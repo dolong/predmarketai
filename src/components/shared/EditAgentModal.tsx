@@ -401,33 +401,6 @@ export function EditAgentModal({
             />
           </div>
 
-          {/* Advanced Section */}
-          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
-            <CollapsibleTrigger asChild>
-              <Button variant="outline" className="w-full flex items-center justify-between">
-                <span className="font-semibold">Advanced Options</span>
-                {isAdvancedOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="pt-4">
-              {/* Resolution Prompt */}
-              <div>
-                <Label htmlFor="resolutionPrompt">Resolution Prompt (Optional)</Label>
-                <Textarea
-                  id="resolutionPrompt"
-                  value={resolutionPrompt}
-                  onChange={(e) => setResolutionPrompt(e.target.value)}
-                  placeholder="e.g., Answer the question by researching the web and finding the answer."
-                  className="mt-2 min-h-[100px]"
-                />
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
           {/* Base Model */}
           <div>
             <Label htmlFor="baseModel">AI Model *</Label>
@@ -462,6 +435,33 @@ export function EditAgentModal({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Advanced Section */}
+          <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span className="font-semibold">Advanced Options</span>
+                {isAdvancedOpen ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-4">
+              {/* Resolution Prompt */}
+              <div>
+                <Label htmlFor="resolutionPrompt">Resolution Prompt (Optional)</Label>
+                <Textarea
+                  id="resolutionPrompt"
+                  value={resolutionPrompt}
+                  onChange={(e) => setResolutionPrompt(e.target.value)}
+                  placeholder="e.g., Answer the question by researching the web and finding the answer."
+                  className="mt-2 min-h-[100px]"
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         <DialogFooter>
