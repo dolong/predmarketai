@@ -110,13 +110,14 @@ model Question {
 }
 
 model NovaRating {
-  id         Int      @id @default(autoincrement())
-  questionId String   @unique @map("question_id")
-  rating     String   @db.VarChar(1)
-  confidence Int?
-  sparkline  Int[]    @default([])
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id             Int      @id @default(autoincrement())
+  questionId     String   @unique @map("question_id")
+  rating         String   @db.VarChar(1)
+  ratingCategory String?  @map("rating_category") @db.VarChar(100)
+  confidence     Int?
+  sparkline      Int[]    @default([])
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
