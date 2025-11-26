@@ -98,21 +98,36 @@ export function NovaProcessingModal({
     try {
       addLog(`Sending batch of ${batch.length} questions to Nova API...`);
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(batch)
-      });
+      // Create an AbortController with a 5-minute timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes in milliseconds
 
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}: ${response.statusText}`);
+      try {
+        const response = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(batch),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}: ${response.statusText}`);
+        }
+
+        const ratings: RatingResponse[] = await response.json();
+        addLog(`✓ Received ${ratings.length} ratings from Nova API`);
+        return ratings;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timed out after 5 minutes');
+        }
+        throw error;
       }
-
-      const ratings: RatingResponse[] = await response.json();
-      addLog(`✓ Received ${ratings.length} ratings from Nova API`);
-      return ratings;
     } catch (error) {
       addLog(`✗ Error processing batch: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
