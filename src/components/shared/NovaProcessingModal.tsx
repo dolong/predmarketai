@@ -121,6 +121,12 @@ export function NovaProcessingModal({
 
         const ratings: RatingResponse[] = await response.json();
         addLog(`✓ Received ${ratings.length} ratings from Nova API`);
+
+        // Log the first rating for debugging
+        if (ratings.length > 0) {
+          console.log('Sample rating response:', ratings[0]);
+        }
+
         return ratings;
       } catch (error) {
         clearTimeout(timeoutId);
@@ -139,8 +145,23 @@ export function NovaProcessingModal({
     try {
       addLog(`Saving ${ratings.length} ratings to database...`);
 
+      // Validate and filter out invalid ratings
+      const validRatings = ratings.filter(r => {
+        if (!r.questionId) {
+          console.error('Invalid rating - missing questionId:', r);
+          addLog(`⚠ Skipping rating with missing questionId`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validRatings.length === 0) {
+        addLog(`✗ No valid ratings to save`);
+        throw new Error('No valid ratings received from API');
+      }
+
       // Save ratings to database using Supabase API
-      const ratingsToSave = ratings.map(r => ({
+      const ratingsToSave = validRatings.map(r => ({
         questionId: r.questionId,
         rating: r.rating,
         ratingCategory: r.ratingCategory,
