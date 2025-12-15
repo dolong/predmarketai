@@ -443,7 +443,7 @@ export const questionsApi = {
 };
 
 export const novaRatingsApi = {
-  async createOrUpdateRating(questionId: string, rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F', confidence?: number, sparkline?: number[]): Promise<boolean> {
+  async createOrUpdateRating(questionId: string, rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F', ratingCategory?: string, confidence?: number, sparkline?: number[]): Promise<boolean> {
     try {
       const now = new Date().toISOString();
 
@@ -460,6 +460,7 @@ export const novaRatingsApi = {
           .from('nova_ratings')
           .update({
             rating,
+            rating_category: ratingCategory,
             confidence,
             sparkline,
             updated_at: now,
@@ -477,6 +478,7 @@ export const novaRatingsApi = {
           .insert({
             question_id: questionId,
             rating,
+            rating_category: ratingCategory,
             confidence,
             sparkline: sparkline || [],
             created_at: now,
@@ -496,12 +498,12 @@ export const novaRatingsApi = {
     }
   },
 
-  async batchCreateOrUpdateRatings(ratings: Array<{ questionId: string; rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; confidence?: number; sparkline?: number[] }>): Promise<{ success: number; failed: number }> {
+  async batchCreateOrUpdateRatings(ratings: Array<{ questionId: string; rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; ratingCategory?: string; confidence?: number; sparkline?: number[] }>): Promise<{ success: number; failed: number }> {
     let success = 0;
     let failed = 0;
 
     for (const rating of ratings) {
-      const result = await this.createOrUpdateRating(rating.questionId, rating.rating, rating.confidence, rating.sparkline);
+      const result = await this.createOrUpdateRating(rating.questionId, rating.rating, rating.ratingCategory, rating.confidence, rating.sparkline);
       if (result) {
         success++;
       } else {

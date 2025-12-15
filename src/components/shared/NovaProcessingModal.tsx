@@ -35,6 +35,7 @@ interface QuestionBatch {
 interface RatingResponse {
   questionId: string;
   rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+  ratingCategory?: string;
   question: string;
 }
 
@@ -142,6 +143,7 @@ export function NovaProcessingModal({
       const ratingsToSave = ratings.map(r => ({
         questionId: r.questionId,
         rating: r.rating,
+        ratingCategory: r.ratingCategory,
         confidence: undefined, // API doesn't return confidence yet
         sparkline: undefined, // API doesn't return sparkline yet
       }));
