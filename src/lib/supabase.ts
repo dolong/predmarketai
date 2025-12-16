@@ -38,8 +38,15 @@ function convertDbAgent(dbAgent: any): Agent {
 
 // Helper function to convert database question to our Question type
 function convertDbQuestion(dbQuestion: any): Question {
-  // Convert nova_ratings array to NovaRating objects
-  const novaRatings = (dbQuestion.nova_ratings || []).map((r: any) => ({
+  // Convert nova_ratings to array - handle both array and single object
+  let ratingsArray: any[] = [];
+  if (dbQuestion.nova_ratings) {
+    ratingsArray = Array.isArray(dbQuestion.nova_ratings)
+      ? dbQuestion.nova_ratings
+      : [dbQuestion.nova_ratings];
+  }
+
+  const novaRatings = ratingsArray.map((r: any) => ({
     rating: r.rating as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S',
     ratingCategory: r.rating_category,
     confidence: r.confidence,
