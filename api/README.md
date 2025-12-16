@@ -35,7 +35,7 @@ Each rating object in the `ratings` array must include:
 
 - `questionId` (required): The ID of the question to rate
 - `rating` (required): The rating value, one of: `'A'`, `'B'`, `'C'`, `'D'`, `'E'`, `'F'`, or `'S'`
-- `ratingCategory` (optional): A string describing the category/reason for the rating
+- `ratingCategory` (required): A string describing the category/reason for the rating (required to support multiple ratings per question)
 - `confidence` (optional): Confidence score as a number (0-100)
 - `sparkline` (optional): Array of numbers representing confidence history over time
 

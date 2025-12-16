@@ -19,7 +19,7 @@ try {
 interface RatingInput {
   questionId: string;
   rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S';
-  ratingCategory?: string;
+  ratingCategory: string; // Required for multiple ratings per question
   confidence?: number;
   sparkline?: number[];
 }
@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const rating of ratings) {
       try {
         // Validate required fields
-        if (!rating.questionId || !rating.rating) {
+        if (!rating.questionId || !rating.rating || !rating.ratingCategory) {
           failed++;
           errors.push(`Missing required fields for question ${rating.questionId}`);
           continue;
@@ -60,12 +60,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const now = new Date().toISOString();
 
-        // Check if rating exists
+        // Check if rating exists for this question AND category
         const { data: existing } = await supabase
           .from('nova_ratings')
           .select('id')
           .eq('question_id', rating.questionId)
-          .single();
+          .eq('rating_category', rating.ratingCategory)
+          .maybeSingle(); // Use maybeSingle instead of single to avoid error when not found
 
         if (existing) {
           // Update existing rating
@@ -73,12 +74,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .from('nova_ratings')
             .update({
               rating: rating.rating,
-              rating_category: rating.ratingCategory,
               confidence: rating.confidence,
               sparkline: rating.sparkline || [],
               updated_at: now,
             })
-            .eq('question_id', rating.questionId);
+            .eq('question_id', rating.questionId)
+            .eq('rating_category', rating.ratingCategory);
 
           if (error) {
             failed++;
