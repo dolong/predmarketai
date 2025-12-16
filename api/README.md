@@ -1,0 +1,143 @@
+# API Endpoints
+
+## Save Ratings Endpoint
+
+**Endpoint:** `POST /api/save-ratings`
+
+This endpoint allows you to save Nova ratings directly to the database without going through the NovaProcessingModal.
+
+### Request Body
+
+```json
+{
+  "ratings": [
+    {
+      "questionId": "gq1765814091400_0",
+      "rating": "S",
+      "ratingCategory": "Short Time Frame & Verifiable",
+      "confidence": 85,
+      "sparkline": [75, 80, 85]
+    },
+    {
+      "questionId": "gq1765814091400_1",
+      "rating": "A",
+      "ratingCategory": "High Quality Market",
+      "confidence": 92,
+      "sparkline": [88, 90, 92]
+    }
+  ]
+}
+```
+
+### Request Parameters
+
+Each rating object in the `ratings` array must include:
+
+- `questionId` (required): The ID of the question to rate
+- `rating` (required): The rating value, one of: `'A'`, `'B'`, `'C'`, `'D'`, `'E'`, `'F'`, or `'S'`
+- `ratingCategory` (optional): A string describing the category/reason for the rating
+- `confidence` (optional): Confidence score as a number (0-100)
+- `sparkline` (optional): Array of numbers representing confidence history over time
+
+### Response
+
+Success response (200):
+```json
+{
+  "success": 2,
+  "failed": 0,
+  "total": 2
+}
+```
+
+Partial success response (200):
+```json
+{
+  "success": 1,
+  "failed": 1,
+  "total": 2,
+  "errors": [
+    "Error creating rating for gq1765814091400_1: duplicate key value violates unique constraint"
+  ]
+}
+```
+
+Error response (400):
+```json
+{
+  "error": "Invalid ratings array"
+}
+```
+
+Error response (500):
+```json
+{
+  "error": "Internal server error",
+  "message": "Database connection failed"
+}
+```
+
+### Example Usage
+
+#### cURL
+```bash
+curl -X POST https://your-domain.vercel.app/api/save-ratings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ratings": [
+      {
+        "questionId": "gq1765814091400_0",
+        "rating": "S",
+        "ratingCategory": "Short Time Frame & Verifiable"
+      }
+    ]
+  }'
+```
+
+#### JavaScript/Fetch
+```javascript
+const response = await fetch('/api/save-ratings', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    ratings: [
+      {
+        questionId: 'gq1765814091400_0',
+        rating: 'S',
+        ratingCategory: 'Short Time Frame & Verifiable',
+        confidence: 85,
+        sparkline: [75, 80, 85]
+      }
+    ]
+  })
+});
+
+const result = await response.json();
+console.log(`Saved ${result.success} ratings, ${result.failed} failed`);
+```
+
+#### n8n Webhook
+You can configure your n8n workflow to POST directly to this endpoint instead of relying on the NovaProcessingModal timeout.
+
+1. Add an HTTP Request node after your Nova rating logic
+2. Set Method to POST
+3. Set URL to `https://your-domain.vercel.app/api/save-ratings`
+4. Set Body to JSON with the ratings array
+5. The response will tell you how many ratings were successfully saved
+
+### Environment Variables
+
+The endpoint requires the following environment variables to be set:
+
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` or `VITE_SUPABASE_ANON_KEY`: Supabase authentication key
+
+### Notes
+
+- The endpoint will automatically create new ratings or update existing ones based on `questionId`
+- All ratings in the request are processed independently - partial failures are possible
+- If a rating already exists for a question, it will be updated with the new values
+- The `created_at` timestamp is only set when creating a new rating
+- The `updated_at` timestamp is updated on every save operation
