@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Star, CheckCircle2, AlertCircle, Loader2, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import { Question } from '../../lib/types';
 import { toast } from 'sonner';
-import { novaRatingsApi } from '../../lib/supabase';
+import { novaRatingsApi } from '../../lib/supabase'; // Still needed for deleteRating functionality
 
 interface NovaProcessingModalProps {
   open: boolean;
@@ -135,31 +135,33 @@ export function NovaProcessingModal({
     }
   };
 
-  const saveRatings = async (ratings: RatingResponse[]) => {
-    try {
-      addLog(`Saving ${ratings.length} ratings to database...`);
-
-      // Save ratings to database using Supabase API
-      const ratingsToSave = ratings.map(r => ({
-        questionId: r.questionId,
-        rating: r.rating,
-        ratingCategory: r.ratingCategory,
-        confidence: undefined, // API doesn't return confidence yet
-        sparkline: undefined, // API doesn't return sparkline yet
-      }));
-
-      const result = await novaRatingsApi.batchCreateOrUpdateRatings(ratingsToSave);
-
-      if (result.failed > 0) {
-        addLog(`⚠ Saved ${result.success} ratings, ${result.failed} failed`);
-      } else {
-        addLog(`✓ Saved ${result.success} ratings to database`);
-      }
-    } catch (error) {
-      addLog(`✗ Error saving ratings: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      throw error;
-    }
-  };
+  // COMMENTED OUT: Ratings are now saved via external /api/save-ratings endpoint
+  // The webhook will POST ratings directly to the API endpoint instead
+  // const saveRatings = async (ratings: RatingResponse[]) => {
+  //   try {
+  //     addLog(`Saving ${ratings.length} ratings to database...`);
+  //
+  //     // Save ratings to database using Supabase API
+  //     const ratingsToSave = ratings.map(r => ({
+  //       questionId: r.questionId,
+  //       rating: r.rating,
+  //       ratingCategory: r.ratingCategory,
+  //       confidence: undefined, // API doesn't return confidence yet
+  //       sparkline: undefined, // API doesn't return sparkline yet
+  //     }));
+  //
+  //     const result = await novaRatingsApi.batchCreateOrUpdateRatings(ratingsToSave);
+  //
+  //     if (result.failed > 0) {
+  //       addLog(`⚠ Saved ${result.success} ratings, ${result.failed} failed`);
+  //     } else {
+  //       addLog(`✓ Saved ${result.success} ratings to database`);
+  //     }
+  //   } catch (error) {
+  //     addLog(`✗ Error saving ratings: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  //     throw error;
+  //   }
+  // };
 
   const processAllBatches = async () => {
     setProcessing(true);
@@ -191,16 +193,23 @@ export function NovaProcessingModal({
 
       addLog(`\nProcessing batch ${batchNum}/${totalBatchCount}...`);
 
+      // Log the questions being sent
+      batch.forEach(q => {
+        addLog(`  → Sent: ${q.question.substring(0, 60)}... (${q.questionId})`);
+      });
+
       try {
-        const ratings = await processBatch(batch);
-        await saveRatings(ratings);
+        await processBatch(batch);
+        // Note: Ratings will be saved via external /api/save-ratings endpoint by the webhook
         successCount += batch.length;
         setProcessedCount(successCount);
-        addLog(`Batch ${batchNum} complete. Progress: ${Math.min(i + BATCH_SIZE, totalToProcess)}/${totalToProcess}`);
+        addLog(`✓ Batch ${batchNum} sent successfully. Progress: ${Math.min(i + BATCH_SIZE, totalToProcess)}/${totalToProcess}`);
+        addLog(`  ℹ Ratings will be saved when webhook POSTs to /api/save-ratings`);
       } catch (error) {
         failCount += batch.length;
         setFailedCount(failCount);
-        addLog(`Batch ${batchNum} failed. Continuing to next batch...`);
+        addLog(`✗ Batch ${batchNum} failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        addLog(`  Continuing to next batch...`);
       }
 
       // Add a small delay between batches to avoid overwhelming the API
@@ -210,13 +219,15 @@ export function NovaProcessingModal({
     }
 
     addLog(`\n=== Processing Complete ===`);
-    addLog(`✓ Successfully processed: ${successCount}`);
+    addLog(`✓ Successfully sent: ${successCount} questions`);
     if (failCount > 0) {
-      addLog(`✗ Failed: ${failCount}`);
+      addLog(`✗ Failed to send: ${failCount} questions`);
     }
+    addLog(`\nℹ Note: Ratings will be saved to the database when the webhook`);
+    addLog(`  POSTs the results to /api/save-ratings endpoint.`);
 
     setProcessing(false);
-    toast.success(`Nova processing complete! ${successCount} questions rated.`);
+    toast.success(`Sent ${successCount} questions to Nova for rating!`);
 
     // Call onComplete to refresh the questions list
     onComplete();
