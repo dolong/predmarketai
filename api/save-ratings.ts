@@ -1,11 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Get environment variables
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Initialize Supabase client (will be null if env vars missing)
+let supabase: ReturnType<typeof createClient> | null = null;
+
+try {
+  if (supabaseUrl && supabaseServiceKey) {
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
+  }
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+}
 
 interface RatingInput {
   questionId: string;
@@ -16,6 +25,14 @@ interface RatingInput {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Check if Supabase client is initialized
+  if (!supabase) {
+    return res.status(500).json({
+      error: 'Server configuration error',
+      message: 'Missing required environment variables: VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY'
+    });
+  }
+
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
