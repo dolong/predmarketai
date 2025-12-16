@@ -1,5 +1,166 @@
 # API Endpoints
 
+## Save Questions Endpoint
+
+**Endpoint:** `POST /api/save-questions`
+
+This endpoint allows you to create and save questions directly to the database.
+
+### Request Body
+
+```json
+{
+  "questions": [
+    {
+      "agentId": "cm4r123abc",
+      "title": "Will Elon Musk announce a new Tesla model by March 2025?",
+      "description": "This market resolves YES if Elon Musk or Tesla officially announces a new Tesla vehicle model before March 31, 2025.",
+      "categories": ["Technology", "Automotive"],
+      "resolutionCriteria": "Resolves YES if Tesla officially announces a new model. Resolves NO otherwise.",
+      "answerEndAt": "2025-03-25T00:00:00Z",
+      "settlementAt": "2025-03-31T23:59:59Z",
+      "liveDate": "2025-01-01T00:00:00Z",
+      "state": "pending"
+    }
+  ]
+}
+```
+
+### Request Parameters
+
+Each question object in the `questions` array must include:
+
+- `agentId` (required): The ID of the agent creating this question
+- `title` (required): The question title/text
+- `resolutionCriteria` (required): How the question will be resolved
+- `answerEndAt` (required): ISO date string when answering closes
+- `settlementAt` (required): ISO date string when the question resolves
+- `description` (optional): Additional context for the question
+- `categories` (optional): Array of category strings
+- `liveDate` (optional): ISO date string when question goes live
+- `state` (optional): Question state - `'pending'`, `'approved'`, or `'published'` (default: `'pending'`)
+
+### Response
+
+Success response (200):
+```json
+{
+  "success": 1,
+  "failed": 0,
+  "total": 1,
+  "questions": [
+    {
+      "id": "gq1765898457064_0",
+      "title": "Will Elon Musk announce a new Tesla model by March 2025?"
+    }
+  ]
+}
+```
+
+Partial success response (200):
+```json
+{
+  "success": 1,
+  "failed": 1,
+  "total": 2,
+  "questions": [
+    {
+      "id": "gq1765898457064_0",
+      "title": "Will Elon Musk announce a new Tesla model by March 2025?"
+    }
+  ],
+  "errors": [
+    "Agent not found: invalid_agent_id"
+  ]
+}
+```
+
+Error response (400):
+```json
+{
+  "error": "Invalid questions array"
+}
+```
+
+Error response (500):
+```json
+{
+  "error": "Internal server error",
+  "message": "Database connection failed"
+}
+```
+
+### Example Usage
+
+#### cURL
+```bash
+curl -X POST https://your-domain.vercel.app/api/save-questions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "questions": [
+      {
+        "agentId": "cm4r123abc",
+        "title": "Will Elon Musk announce a new Tesla model by March 2025?",
+        "resolutionCriteria": "Resolves YES if Tesla officially announces a new model.",
+        "answerEndAt": "2025-03-25T00:00:00Z",
+        "settlementAt": "2025-03-31T23:59:59Z"
+      }
+    ]
+  }'
+```
+
+#### JavaScript/Fetch
+```javascript
+const response = await fetch('/api/save-questions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    questions: [
+      {
+        agentId: 'cm4r123abc',
+        title: 'Will Elon Musk announce a new Tesla model by March 2025?',
+        description: 'This market resolves YES if Elon Musk or Tesla officially announces a new Tesla vehicle model before March 31, 2025.',
+        categories: ['Technology', 'Automotive'],
+        resolutionCriteria: 'Resolves YES if Tesla officially announces a new model. Resolves NO otherwise.',
+        answerEndAt: '2025-03-25T00:00:00Z',
+        settlementAt: '2025-03-31T23:59:59Z',
+        state: 'pending'
+      }
+    ]
+  })
+});
+
+const result = await response.json();
+console.log(`Created ${result.success} questions, ${result.failed} failed`);
+```
+
+#### n8n Webhook
+You can configure your n8n workflow to POST directly to this endpoint.
+
+1. Add an HTTP Request node after your question generation logic
+2. Set Method to POST
+3. Set URL to `https://your-domain.vercel.app/api/save-questions`
+4. Set Body to JSON with the questions array
+5. The response will tell you how many questions were successfully created
+
+### Environment Variables
+
+The endpoint requires the following environment variables to be set:
+
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` or `VITE_SUPABASE_ANON_KEY`: Supabase authentication key
+
+### Notes
+
+- The endpoint validates that the `agentId` exists before creating questions
+- All questions are created with default values for pool sizes (0) and answer count (0)
+- The `created_at` and `updated_at` timestamps are automatically set
+- Questions default to `'pending'` state if not specified
+
+---
+
 ## Save Ratings Endpoint
 
 **Endpoint:** `POST /api/save-ratings`

@@ -104,16 +104,16 @@ model Question {
   outcomeEvidence    OutcomeEvidence[]
   answers            Answer[]
   aiResolutionProposal AIResolutionProposal?
-  novaRating         NovaRating?
+  novaRatings        NovaRating[]
 
   @@map("questions")
 }
 
 model NovaRating {
   id             Int      @id @default(autoincrement())
-  questionId     String   @unique @map("question_id")
+  questionId     String   @map("question_id")
   rating         String   @db.VarChar(1)
-  ratingCategory String?  @map("rating_category") @db.VarChar(100)
+  ratingCategory String   @map("rating_category") @db.VarChar(100)
   confidence     Int?
   sparkline      Int[]    @default([])
   createdAt      DateTime @default(now()) @map("created_at")
@@ -121,6 +121,7 @@ model NovaRating {
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
+  @@unique([questionId, ratingCategory])
   @@map("nova_ratings")
   @@index([questionId])
   @@index([rating])

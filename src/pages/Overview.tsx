@@ -111,6 +111,48 @@ export function Overview() {
     return colors[rating] || colors['F'];
   };
 
+  // Helper function to calculate average rating from multiple ratings
+  const getAverageRating = (question: Question): { rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S', confidence: number, sparkline: number[], categories: string[] } => {
+    if (question.novaRatings && question.novaRatings.length > 0) {
+      // Convert ratings to numeric values for averaging
+      const ratingToNum: Record<string, number> = { 'F': 1, 'E': 2, 'D': 3, 'C': 4, 'B': 5, 'A': 6, 'S': 7 };
+      const numToRating: Record<number, 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'> = { 1: 'F', 2: 'E', 3: 'D', 4: 'C', 5: 'B', 6: 'A', 7: 'S' };
+
+      // Calculate average rating
+      const avgRatingNum = Math.round(
+        question.novaRatings.reduce((sum, r) => sum + ratingToNum[r.rating], 0) / question.novaRatings.length
+      );
+
+      // Calculate average confidence
+      const confidences = question.novaRatings.filter(r => r.confidence !== undefined).map(r => r.confidence!);
+      const avgConfidence = confidences.length > 0
+        ? Math.round(confidences.reduce((sum, c) => sum + c, 0) / confidences.length)
+        : 0;
+
+      // Merge sparklines (take longest one or average if needed)
+      const sparklines = question.novaRatings.filter(r => r.sparkline && r.sparkline.length > 0).map(r => r.sparkline!);
+      const avgSparkline = sparklines.length > 0 ? sparklines[0] : [];
+
+      // Collect all category names
+      const categories = question.novaRatings.map(r => r.ratingCategory).filter(Boolean) as string[];
+
+      return {
+        rating: numToRating[avgRatingNum] || 'F',
+        confidence: avgConfidence,
+        sparkline: avgSparkline,
+        categories
+      };
+    }
+
+    // Fallback to legacy single rating
+    return {
+      rating: question.rating || 'F',
+      confidence: question.ratingConfidence || 0,
+      sparkline: question.ratingSparkline || [],
+      categories: question.ratingCategory ? [question.ratingCategory] : []
+    };
+  };
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [questionInput, setQuestionInput] = useState("");
   const [expiryDate, setExpiryDate] = useState<Date>();
@@ -446,18 +488,48 @@ export function Overview() {
                     </Badge>
                   )}
                 </div>
-                {/* Display multiple ratings if available */}
+                {/* Display averaged rating circle and individual category rows */}
                 {suggestion.novaRatings && suggestion.novaRatings.length > 0 ? (
-                  <div className="flex flex-col gap-3">
-                    {suggestion.novaRatings.map((novaRating, index) => (
-                      <RatingGauge
-                        key={index}
-                        rating={novaRating.rating}
-                        ratingCategory={novaRating.ratingCategory}
-                        confidence={novaRating.confidence || 0}
-                        sparklineData={novaRating.sparkline}
-                      />
-                    ))}
+                  <div className="space-y-4">
+                    {/* Averaged Rating Circle */}
+                    {(() => {
+                      const avgRating = getAverageRating(suggestion);
+                      return (
+                        <RatingGauge
+                          rating={avgRating.rating}
+                          ratingCategory="Avg. Rating"
+                          confidence={avgRating.confidence}
+                          sparklineData={avgRating.sparkline}
+                        />
+                      );
+                    })()}
+
+                    {/* Individual Category Ratings (without circles) */}
+                    <div className="space-y-2 pl-2 border-l-2 border-muted">
+                      {suggestion.novaRatings.map((novaRating, index) => (
+                        <div key={index} className="flex items-center gap-3 text-sm">
+                          <span className="text-lg font-bold" style={{
+                            color: (() => {
+                              const configs: Record<string, string> = {
+                                'S': 'rgb(168, 85, 247)', 'A': 'rgb(16, 185, 129)', 'B': 'rgb(34, 197, 94)',
+                                'C': 'rgb(234, 179, 8)', 'D': 'rgb(249, 115, 22)', 'E': 'rgb(239, 68, 68)', 'F': 'rgb(244, 63, 94)'
+                              };
+                              return configs[novaRating.rating] || configs['F'];
+                            })()
+                          }}>
+                            {novaRating.rating}
+                          </span>
+                          <span className="text-xs text-muted-foreground flex-1">
+                            {novaRating.ratingCategory}
+                          </span>
+                          {novaRating.confidence !== undefined && novaRating.confidence !== null && (
+                            <span className="text-xs text-muted-foreground">
+                              {novaRating.confidence}%
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : suggestion.rating ? (
                   /* Fallback to legacy single rating */
