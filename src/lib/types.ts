@@ -35,7 +35,7 @@ export interface Question {
 
   // AI Suggestion fields (for pending/approved/rejected states)
   aiScore?: number;
-  rating?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; // Nova rating
+  rating?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'; // Nova rating
   ratingCategory?: string; // Category/reason for the rating
   ratingConfidence?: number; // 0-100 percentage
   ratingSparkline?: number[]; // confidence history over time

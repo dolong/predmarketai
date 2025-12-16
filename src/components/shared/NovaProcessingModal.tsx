@@ -34,7 +34,7 @@ interface QuestionBatch {
 
 interface RatingResponse {
   questionId: string;
-  rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+  rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S';
   ratingCategory?: string;
   question: string;
 }

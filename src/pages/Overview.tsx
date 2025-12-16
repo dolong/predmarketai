@@ -98,8 +98,9 @@ export function Overview() {
   };
 
   // Helper function to get rating badge color
-  const getRatingColor = (rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'): string => {
-    const colors = {
+  const getRatingColor = (rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'): string => {
+    const colors: Record<string, string> = {
+      'S': 'bg-purple-500/10 text-purple-700 border-purple-500/20',
       'A': 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
       'B': 'bg-green-500/10 text-green-700 border-green-500/20',
       'C': 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20',
@@ -107,7 +108,7 @@ export function Overview() {
       'E': 'bg-red-500/10 text-red-700 border-red-500/20',
       'F': 'bg-rose-500/10 text-rose-700 border-rose-500/20',
     };
-    return colors[rating];
+    return colors[rating] || colors['F'];
   };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -281,13 +282,13 @@ export function Overview() {
     }
   };
 
-  // Get Nova rated suggestions (pending questions with real ratings A-F from database)
-  const ratingOrder = { 'A': 6, 'B': 5, 'C': 4, 'D': 3, 'E': 2, 'F': 1 };
+  // Get Nova rated suggestions (pending questions with real ratings A-F, S from database)
+  const ratingOrder: Record<string, number> = { 'S': 7, 'A': 6, 'B': 5, 'C': 4, 'D': 3, 'E': 2, 'F': 1 };
   const novaSuggestions = questions
     .filter(q => q.state === 'pending' && q.rating !== undefined)
     .sort((a, b) => {
-      const orderA = ratingOrder[a.rating || 'F'];
-      const orderB = ratingOrder[b.rating || 'F'];
+      const orderA = ratingOrder[a.rating || 'F'] || 1;
+      const orderB = ratingOrder[b.rating || 'F'] || 1;
       return ratingFilter === "highest"
         ? orderB - orderA
         : orderA - orderB;
@@ -430,7 +431,7 @@ export function Overview() {
                       {suggestion.title}
                     </CardTitle>
                   </div>
-                  {suggestion.rating === 'A' && (
+                  {(suggestion.rating === 'S' || suggestion.rating === 'A') && (
                     <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 whitespace-nowrap">
                       ⭐ Top Rated
                     </Badge>

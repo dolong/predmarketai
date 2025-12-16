@@ -2,15 +2,16 @@ import React from 'react';
 import { Badge } from '../ui/badge';
 
 interface RatingGaugeProps {
-  rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+  rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S';
   confidence: number; // 0-100
   sparklineData?: number[]; // confidence history
 }
 
 export function RatingGauge({ rating, confidence, sparklineData = [] }: RatingGaugeProps) {
   // Map rating to color and percentage range
-  const getRatingConfig = (rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F') => {
-    const configs = {
+  const getRatingConfig = (rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S') => {
+    const configs: Record<string, { color: string; bgColor: string; range: string }> = {
+      'S': { color: 'rgb(168, 85, 247)', bgColor: 'rgba(168, 85, 247, 0.1)', range: 'Special' },
       'A': { color: 'rgb(16, 185, 129)', bgColor: 'rgba(16, 185, 129, 0.1)', range: '90-100%' },
       'B': { color: 'rgb(34, 197, 94)', bgColor: 'rgba(34, 197, 94, 0.1)', range: '80-89%' },
       'C': { color: 'rgb(234, 179, 8)', bgColor: 'rgba(234, 179, 8, 0.1)', range: '70-79%' },
@@ -18,7 +19,7 @@ export function RatingGauge({ rating, confidence, sparklineData = [] }: RatingGa
       'E': { color: 'rgb(239, 68, 68)', bgColor: 'rgba(239, 68, 68, 0.1)', range: '50-59%' },
       'F': { color: 'rgb(244, 63, 94)', bgColor: 'rgba(244, 63, 94, 0.1)', range: '<50%' },
     };
-    return configs[rating];
+    return configs[rating] || configs['F'];
   };
 
   const config = getRatingConfig(rating);

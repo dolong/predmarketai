@@ -443,7 +443,7 @@ export const questionsApi = {
 };
 
 export const novaRatingsApi = {
-  async createOrUpdateRating(questionId: string, rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F', ratingCategory?: string, confidence?: number, sparkline?: number[]): Promise<boolean> {
+  async createOrUpdateRating(questionId: string, rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S', ratingCategory?: string, confidence?: number, sparkline?: number[]): Promise<boolean> {
     try {
       const now = new Date().toISOString();
 
@@ -498,7 +498,7 @@ export const novaRatingsApi = {
     }
   },
 
-  async batchCreateOrUpdateRatings(ratings: Array<{ questionId: string; rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F'; ratingCategory?: string; confidence?: number; sparkline?: number[] }>): Promise<{ success: number; failed: number }> {
+  async batchCreateOrUpdateRatings(ratings: Array<{ questionId: string; rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'; ratingCategory?: string; confidence?: number; sparkline?: number[] }>): Promise<{ success: number; failed: number }> {
     let success = 0;
     let failed = 0;
 
