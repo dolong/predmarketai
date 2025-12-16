@@ -285,10 +285,18 @@ export function Overview() {
   // Get Nova rated suggestions (pending questions with real ratings A-F, S from database)
   const ratingOrder: Record<string, number> = { 'S': 7, 'A': 6, 'B': 5, 'C': 4, 'D': 3, 'E': 2, 'F': 1 };
   const novaSuggestions = questions
-    .filter(q => q.state === 'pending' && q.rating !== undefined)
+    .filter(q => q.state === 'pending' && (q.rating !== undefined || (q.novaRatings && q.novaRatings.length > 0)))
     .sort((a, b) => {
-      const orderA = ratingOrder[a.rating || 'F'] || 1;
-      const orderB = ratingOrder[b.rating || 'F'] || 1;
+      // Get the highest rating from either single rating or novaRatings array
+      const getHighestRating = (q: Question) => {
+        if (q.novaRatings && q.novaRatings.length > 0) {
+          return Math.max(...q.novaRatings.map(r => ratingOrder[r.rating] || 1));
+        }
+        return ratingOrder[q.rating || 'F'] || 1;
+      };
+
+      const orderA = getHighestRating(a);
+      const orderB = getHighestRating(b);
       return ratingFilter === "highest"
         ? orderB - orderA
         : orderA - orderB;
@@ -431,17 +439,35 @@ export function Overview() {
                       {suggestion.title}
                     </CardTitle>
                   </div>
-                  {(suggestion.rating === 'S' || suggestion.rating === 'A') && (
+                  {(suggestion.rating === 'S' || suggestion.rating === 'A' ||
+                    suggestion.novaRatings?.some(r => r.rating === 'S' || r.rating === 'A')) && (
                     <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 whitespace-nowrap">
                       ⭐ Top Rated
                     </Badge>
                   )}
                 </div>
-                <RatingGauge
-                  rating={suggestion.rating!}
-                  confidence={suggestion.ratingConfidence || 0}
-                  sparklineData={suggestion.ratingSparkline}
-                />
+                {/* Display multiple ratings if available */}
+                {suggestion.novaRatings && suggestion.novaRatings.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {suggestion.novaRatings.map((novaRating, index) => (
+                      <RatingGauge
+                        key={index}
+                        rating={novaRating.rating}
+                        ratingCategory={novaRating.ratingCategory}
+                        confidence={novaRating.confidence || 0}
+                        sparklineData={novaRating.sparkline}
+                      />
+                    ))}
+                  </div>
+                ) : suggestion.rating ? (
+                  /* Fallback to legacy single rating */
+                  <RatingGauge
+                    rating={suggestion.rating}
+                    ratingCategory={suggestion.ratingCategory}
+                    confidence={suggestion.ratingConfidence || 0}
+                    sparklineData={suggestion.ratingSparkline}
+                  />
+                ) : null}
               </CardHeader>
               <CardContent className="relative space-y-4">
                 {/* Description */}

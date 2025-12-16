@@ -31,7 +31,9 @@
       "Bash(npx prisma db execute:*)",
       "Bash(echo:*)",
       "Bash(\"C:\\Users\\dolon\\Documents\\Aiautomationdashboardui-main\\src\\index.css\")",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(curl:*)",
+      "Bash(npx prisma db push:*)"
     ],
     "deny": [],
     "ask": []

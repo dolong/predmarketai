@@ -3,11 +3,12 @@ import { Badge } from '../ui/badge';
 
 interface RatingGaugeProps {
   rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S';
+  ratingCategory?: string;
   confidence: number; // 0-100
   sparklineData?: number[]; // confidence history
 }
 
-export function RatingGauge({ rating, confidence, sparklineData = [] }: RatingGaugeProps) {
+export function RatingGauge({ rating, ratingCategory, confidence, sparklineData = [] }: RatingGaugeProps) {
   // Map rating to color and percentage range
   const getRatingConfig = (rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S') => {
     const configs: Record<string, { color: string; bgColor: string; range: string }> = {
@@ -82,6 +83,18 @@ export function RatingGauge({ rating, confidence, sparklineData = [] }: RatingGa
 
       {/* Sparkline and info */}
       <div className="flex flex-col gap-1">
+        {/* Rating Grade with Category */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-lg font-bold" style={{ color: config.color }}>
+            {rating}
+          </span>
+          {ratingCategory && (
+            <span className="text-xs text-muted-foreground">
+              {ratingCategory}
+            </span>
+          )}
+        </div>
+
         {sparklineData.length >= 2 && (
           <svg width="60" height="20" className="opacity-60">
             <path

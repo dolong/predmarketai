@@ -38,6 +38,17 @@ function convertDbAgent(dbAgent: any): Agent {
 
 // Helper function to convert database question to our Question type
 function convertDbQuestion(dbQuestion: any): Question {
+  // Convert nova_ratings array to NovaRating objects
+  const novaRatings = (dbQuestion.nova_ratings || []).map((r: any) => ({
+    rating: r.rating as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S',
+    ratingCategory: r.rating_category,
+    confidence: r.confidence,
+    sparkline: r.sparkline || []
+  }));
+
+  // For backward compatibility, use the first rating as the primary rating
+  const firstRating = novaRatings[0];
+
   return {
     id: dbQuestion.id,
     title: dbQuestion.title,
@@ -52,9 +63,13 @@ function convertDbQuestion(dbQuestion: any): Question {
     reviewStatus: dbQuestion.review_status,
     outcome: dbQuestion.outcome,
     aiScore: dbQuestion.ai_score ? parseFloat(dbQuestion.ai_score) : undefined,
-    rating: dbQuestion.nova_rating?.rating as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | undefined,
-    ratingConfidence: dbQuestion.nova_rating?.confidence,
-    ratingSparkline: dbQuestion.nova_rating?.sparkline || undefined,
+    // Legacy single rating fields (for backward compatibility)
+    rating: firstRating?.rating,
+    ratingCategory: firstRating?.ratingCategory,
+    ratingConfidence: firstRating?.confidence,
+    ratingSparkline: firstRating?.sparkline,
+    // New multiple ratings array
+    novaRatings: novaRatings.length > 0 ? novaRatings : undefined,
     riskFlags: [],
     categories: dbQuestion.categories || [],
     type: dbQuestion.type || 'binary',
@@ -306,9 +321,9 @@ export const questionsApi = {
         .from('questions')
         .select(`
           *,
-          nova_rating:nova_ratings(rating, confidence, sparkline)
+          nova_ratings(rating, rating_category, confidence, sparkline)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
       if (error) {
         console.error('Error fetching questions:', error);

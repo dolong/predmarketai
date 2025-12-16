@@ -19,6 +19,13 @@ export type Outcome = 'YES' | 'NO' | 'INVALID';
 
 export type QuestionType = 'binary' | 'multi-option';
 
+export interface NovaRating {
+  rating: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S';
+  ratingCategory: string;
+  confidence?: number;
+  sparkline?: number[];
+}
+
 export interface Question {
   id: string;
   title: string;
@@ -35,10 +42,13 @@ export interface Question {
 
   // AI Suggestion fields (for pending/approved/rejected states)
   aiScore?: number;
+  // Legacy single rating fields (kept for backward compatibility)
   rating?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'; // Nova rating
   ratingCategory?: string; // Category/reason for the rating
   ratingConfidence?: number; // 0-100 percentage
   ratingSparkline?: number[]; // confidence history over time
+  // New multiple ratings array
+  novaRatings?: NovaRating[];
   riskFlags?: string[];
 
   // Live market fields (for published states)
