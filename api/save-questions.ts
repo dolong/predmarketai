@@ -79,10 +79,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const now = new Date().toISOString();
 
+        // Generate a custom question ID (format: gq + timestamp + random)
+        const questionId = `gq${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
         // Create the question
         const { data: newQuestion, error } = await supabase
           .from('questions')
           .insert({
+            id: questionId,
             agent_id: question.agentId,
             title: question.title,
             description: question.description || '',
@@ -98,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             pool_no: 0,
             created_at: now,
             updated_at: now,
-          })
+          } as any)
           .select()
           .single();
 
@@ -108,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else {
           success++;
           createdQuestions.push({
-            id: newQuestion.id,
+            id: (newQuestion as any)?.id || questionId,
             title: question.title
           });
         }
