@@ -443,7 +443,7 @@ export function Markets() {
 
   const topSuggestions = questions
     .filter(q => {
-      if (q.state !== 'pending' || !q.aiScore) return false;
+      if (q.state !== 'pending') return false;
 
       // Filter out questions past their settlement date
       const settlementDate = new Date(q.settlementAt);

@@ -349,7 +349,7 @@ export function Overview() {
   today.setHours(0, 0, 0, 0); // Set to start of day for comparison
 
   const trendingSuggestions = [...questions.filter(q => {
-    if (q.state !== 'pending' || !q.aiScore) return false;
+    if (q.state !== 'pending') return false;
 
     // Filter out questions past their settlement date
     const settlementDate = new Date(q.settlementAt);
