@@ -517,7 +517,7 @@ export function Markets() {
                   <CardHeader className="relative pb-3 flex-shrink-0 min-w-0">
                     <div className="flex items-center justify-between mb-2 min-w-0">
                       <Badge className="bg-primary/10 text-primary border-primary/20">
-                        AI Score: {(suggestion.aiScore * 100).toFixed(0)}%
+                        AI Score: 100%
                       </Badge>
                       {index === 0 && (
                         <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">

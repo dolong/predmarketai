@@ -310,7 +310,7 @@ export function AgentDetailsModal({
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge className="bg-primary/10 text-primary border-primary/20">
-                            AI Score: {(question.aiScore * 100).toFixed(0)}%
+                            AI Score: 100%
                           </Badge>
                           {index === 0 && (
                             <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
