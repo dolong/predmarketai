@@ -39,6 +39,7 @@ Each question object in the `questions` array must include:
 - `categories` (optional): Array of category strings. If not provided, automatically uses the agent's categories
 - `liveDate` (optional): ISO date string when question goes live
 - `state` (optional): Question state - `'pending'`, `'approved'`, or `'published'` (default: `'pending'`)
+- `aiScore` (optional): AI quality score from 0.00 to 1.00 (default: `0.75`). Questions appear in "All AI Agent Generated" section
 
 ### Response
 
@@ -156,6 +157,7 @@ The endpoint requires the following environment variables to be set:
 
 - The endpoint validates that the `agentId` exists before creating questions
 - **Categories are automatically inherited from the agent** if not provided in the request
+- **AI Score defaults to 0.75** if not provided, ensuring questions appear in "All AI Agent Generated" section
 - All questions are created with default values for pool sizes (0) and answer count (0)
 - The `created_at` and `updated_at` timestamps are automatically set
 - Questions default to `'pending'` state if not specified
