@@ -449,7 +449,6 @@ export function Markets() {
       const settlementDate = new Date(q.settlementAt);
       return settlementDate >= today;
     })
-    .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
     .slice(0, 6);
 
   // Helper function to truncate title for desktop

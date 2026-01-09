@@ -354,8 +354,7 @@ export function Overview() {
     // Filter out questions past their settlement date
     const settlementDate = new Date(q.settlementAt);
     return settlementDate >= today;
-  })]
-    .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0));
+  })];
 
   // Calculate stats from real data
   const pendingCount = questions.filter(q => q.state === 'pending').length;
