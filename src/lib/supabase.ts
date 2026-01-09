@@ -69,7 +69,6 @@ function convertDbQuestion(dbQuestion: any): Question {
     pushedTo: dbQuestion.pushed_to || [],
     reviewStatus: dbQuestion.review_status,
     outcome: dbQuestion.outcome,
-    aiScore: dbQuestion.ai_score ? parseFloat(dbQuestion.ai_score) : undefined,
     // Legacy single rating fields (for backward compatibility)
     rating: firstRating?.rating,
     ratingCategory: firstRating?.ratingCategory,
@@ -301,7 +300,6 @@ export const questionsApi = {
           settlement_at: question.settlementAt?.toISOString(),
           resolution_criteria: question.resolutionCriteria,
           agent_id: question.agentId,
-          ai_score: question.aiScore,
           type: question.type || 'binary',
           categories: question.categories || [],
           created_at: now,

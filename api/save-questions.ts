@@ -26,7 +26,6 @@ interface QuestionInput {
   settlementAt: string; // ISO date string
   liveDate?: string; // ISO date string
   state?: 'pending' | 'approved' | 'published';
-  aiScore?: number; // Optional AI score (0.00-1.00)
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -101,7 +100,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             live_date: question.liveDate || null,
             state: question.state || 'pending',
             categories: categories,
-            ai_score: question.aiScore !== undefined ? question.aiScore : 0.75, // Default to 0.75 if not provided
             answer_count: 0,
             pool_total: 0,
             pool_yes: 0,

@@ -40,8 +40,6 @@ export interface Question {
   agentId: string;
   pushedTo?: string[]; // Platforms where question is pushed (e.g., "Synapse Markets", "Vectra Markets")
 
-  // AI Suggestion fields (for pending/approved/rejected states)
-  aiScore?: number;
   // Legacy single rating fields (kept for backward compatibility)
   rating?: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'S'; // Nova rating
   ratingCategory?: string; // Category/reason for the rating

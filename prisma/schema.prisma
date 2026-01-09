@@ -91,7 +91,6 @@ model Question {
   poolTotal          Decimal        @default(0) @map("pool_total") @db.Decimal(15, 2)
   poolYes            Decimal        @default(0) @map("pool_yes") @db.Decimal(15, 2)
   poolNo             Decimal        @default(0) @map("pool_no") @db.Decimal(15, 2)
-  aiScore            Decimal?       @map("ai_score") @db.Decimal(3, 2)
   categories         String[]       @default([])
   createdAt          DateTime       @default(now()) @map("created_at")
   updatedAt          DateTime       @updatedAt @map("updated_at")
