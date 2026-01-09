@@ -64,10 +64,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           continue;
         }
 
-        // Verify agent exists
+        // Verify agent exists and get its categories
         const { data: agent } = await supabase
           .from('agents')
-          .select('id')
+          .select('id, categories')
           .eq('id', question.agentId)
           .maybeSingle();
 
@@ -82,6 +82,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Generate a custom question ID (format: gq + timestamp + random)
         const questionId = `gq${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
+        // Use agent's categories if not provided in the request
+        const agentCategories = (agent as any)?.categories || [];
+        const categories = question.categories || agentCategories;
+
         // Create the question
         const { data: newQuestion, error } = await supabase
           .from('questions')
@@ -95,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             settlement_at: question.settlementAt,
             live_date: question.liveDate || null,
             state: question.state || 'pending',
-            categories: question.categories || [],
+            categories: categories,
             answer_count: 0,
             pool_total: 0,
             pool_yes: 0,

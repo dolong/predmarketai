@@ -36,7 +36,7 @@ Each question object in the `questions` array must include:
 - `answerEndAt` (required): ISO date string when answering closes
 - `settlementAt` (required): ISO date string when the question resolves
 - `description` (optional): Additional context for the question
-- `categories` (optional): Array of category strings
+- `categories` (optional): Array of category strings. If not provided, automatically uses the agent's categories
 - `liveDate` (optional): ISO date string when question goes live
 - `state` (optional): Question state - `'pending'`, `'approved'`, or `'published'` (default: `'pending'`)
 
@@ -155,9 +155,11 @@ The endpoint requires the following environment variables to be set:
 ### Notes
 
 - The endpoint validates that the `agentId` exists before creating questions
+- **Categories are automatically inherited from the agent** if not provided in the request
 - All questions are created with default values for pool sizes (0) and answer count (0)
 - The `created_at` and `updated_at` timestamps are automatically set
 - Questions default to `'pending'` state if not specified
+- Question IDs are auto-generated in the format: `gq{timestamp}_{random}`
 
 ---
 
